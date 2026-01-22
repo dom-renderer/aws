@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('aw_brands', function (Blueprint $table) {
+        Schema::create('aw_bundles', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('slug')->unique();
-            $table->text('description')->nullable();
-            $table->string('logo')->nullable();
-            $table->boolean('status')->default(true);
+            $table->foreignId('product_id')->constrained()->cascadeOnDelete();
+            $table->enum('pricing_mode', ['fixed', 'sum_discount']);
+            $table->enum('discount_type', ['percentage', 'fixed'])->nullable();
+            $table->decimal('discount_value', 12, 2)->nullable();
+
             $table->softDeletes();
             $table->timestamps();
         });
@@ -28,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('aw_brands');
+        Schema::dropIfExists('aw_bundles');
     }
 };

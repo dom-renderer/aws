@@ -11,15 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('aw_brands', function (Blueprint $table) {
+        Schema::create('aw_product_categories', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('slug')->unique();
-            $table->text('description')->nullable();
-            $table->string('logo')->nullable();
-            $table->boolean('status')->default(true);
+            $table->unsignedBigInteger('product_id')->nullable();
+            $table->unsignedBigInteger('category_id')->nullable();
+            $table->boolean('is_primary')->default(false);
             $table->softDeletes();
             $table->timestamps();
+            
+            $table->index(['product_id', 'category_id']);
         });
     }
 
@@ -28,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('aw_brands');
+        Schema::dropIfExists('aw_product_categories');
     }
 };

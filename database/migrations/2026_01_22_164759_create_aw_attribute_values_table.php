@@ -11,15 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('aw_brands', function (Blueprint $table) {
+        Schema::create('aw_attribute_values', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('slug')->unique();
-            $table->text('description')->nullable();
-            $table->string('logo')->nullable();
-            $table->boolean('status')->default(true);
+            $table->unsignedBigInteger('attribute_id')->nullable();
+            $table->string('value', 100);
             $table->softDeletes();
             $table->timestamps();
+            
+            $table->index('attribute_id');
         });
     }
 
@@ -28,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('aw_brands');
+        Schema::dropIfExists('aw_attribute_values');
     }
 };

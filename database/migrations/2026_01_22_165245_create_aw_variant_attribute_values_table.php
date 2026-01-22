@@ -11,13 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('aw_brands', function (Blueprint $table) {
+        Schema::create('aw_variant_attribute_values', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('slug')->unique();
-            $table->text('description')->nullable();
-            $table->string('logo')->nullable();
-            $table->boolean('status')->default(true);
+            $table->unsignedBigInteger('variant_id')->nullable();
+            $table->unsignedBigInteger('attribute_value_id')->nullable();
             $table->softDeletes();
             $table->timestamps();
         });
@@ -28,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('aw_brands');
+        Schema::dropIfExists('aw_variant_attribute_values');
     }
 };

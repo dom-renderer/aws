@@ -11,13 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('aw_brands', function (Blueprint $table) {
+        Schema::create('aw_products', function (Blueprint $table) {
             $table->id();
+            $table->enum('product_type', ['single', 'variable', 'bundle'])->index();
             $table->string('name');
             $table->string('slug')->unique();
-            $table->text('description')->nullable();
-            $table->string('logo')->nullable();
-            $table->boolean('status')->default(true);
+            $table->foreignId('brand_id')->nullable()->index();
+            $table->string('short_description', 500)->nullable();
+            $table->text('long_description')->nullable();
+            $table->enum('status', ['active', 'inactive', 'draft'])->default('draft')->index();
+            $table->boolean('is_b2b')->default(false);
             $table->softDeletes();
             $table->timestamps();
         });
@@ -28,6 +31,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('aw_brands');
+        Schema::dropIfExists('aw_products');
     }
 };

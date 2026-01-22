@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Eloquent\Model;
 
-class Category extends Model
+class AwCategory extends Model
 {
     use SoftDeletes;
 
@@ -21,16 +21,16 @@ class Category extends Model
 
     public function parent(): BelongsTo
     {
-        return $this->belongsTo(Category::class, 'parent_id')->with('parent');
+        return $this->belongsTo(AwCategory::class, 'parent_id')->with('parent');
     }
 
     public function children(): HasMany
     {
-        return $this->hasMany(Category::class, 'parent_id');
+        return $this->hasMany(AwCategory::class, 'parent_id');
     }
 
     public static function buildCategoryTree($parentId = null) {
-        $categories = Category::where('parent_id', $parentId)
+        $categories = AwCategory::where('parent_id', $parentId)
             ->whereNull('deleted_at')
             ->where('status', 1)
             ->orderBy('name')

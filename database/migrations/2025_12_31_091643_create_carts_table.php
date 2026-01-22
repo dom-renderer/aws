@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('customer_id')->nullable()->constrained('users')->cascadeOnDelete();
             $table->string('session_id')->nullable()->index();
-            $table->foreignId('warehouse_id')->nullable()->constrained()->nullOnDelete();
+            $table->unsignedBigInteger('warehouse_id')->nullable();
             $table->timestamp('abandoned_at')->nullable();
             $table->unsignedBigInteger('converted_to_order_id')->nullable();
             $table->softDeletes();

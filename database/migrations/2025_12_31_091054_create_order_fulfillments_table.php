@@ -11,7 +11,7 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('order_id')->constrained()->cascadeOnDelete();
             $table->string('fulfillment_number')->unique();
-            $table->foreignId('warehouse_id')->constrained()->restrictOnDelete();
+            $table->unsignedBigInteger('warehouse_id');
             $table->enum('status', ['pending','processing','packed','shipped','delivered','cancelled'])->default('pending');
 
             $table->string('tracking_number')->nullable();

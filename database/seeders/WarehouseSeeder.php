@@ -13,7 +13,7 @@ class WarehouseSeeder extends Seeder
         $faker = Faker::create();
 
         for ($i = 0; $i < 10; $i++) {
-            DB::table('warehouses')->insert([
+            DB::table('aw_warehouses')->insert([
                 'code' => $faker->unique()->word,
                 'name' => $faker->company,
                 'address_line_1' => $faker->address,

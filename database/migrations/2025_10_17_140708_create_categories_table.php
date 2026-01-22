@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('categories', function (Blueprint $table) {
+        Schema::create('aw_categories', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->string('slug')->nullable()->index();
             $table->string('short_url')->nullable()->index();
             $table->string('logo')->nullable();
-            $table->foreignId('parent_id')->nullable()->constrained('categories')->nullOnDelete();
+            $table->unsignedBigInteger('parent_id')->nullable();
             $table->json('tags')->nullable();
             $table->text('description')->nullable();
             $table->boolean('status')->default(true);
@@ -31,6 +31,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('categories');
+        Schema::dropIfExists('aw_categories');
     }
 };

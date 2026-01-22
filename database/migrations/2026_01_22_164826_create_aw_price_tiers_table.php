@@ -11,15 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('aw_brands', function (Blueprint $table) {
+        Schema::create('aw_price_tiers', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('slug')->unique();
-            $table->text('description')->nullable();
-            $table->string('logo')->nullable();
-            $table->boolean('status')->default(true);
+            $table->unsignedBigInteger('price_id')->nullable();
+            $table->integer('min_qty');
+            $table->integer('max_qty')->nullable();
+            $table->decimal('price', 12, 2);
+            
             $table->softDeletes();
             $table->timestamps();
+            
+            $table->index('price_id');
         });
     }
 
@@ -28,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('aw_brands');
+        Schema::dropIfExists('aw_price_tiers');
     }
 };

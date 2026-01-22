@@ -68,7 +68,7 @@ class BrandSeeder extends Seeder
         ];
 
         foreach ($brands as $brand) {
-            DB::table('brands')->updateOrInsert(
+            DB::table('aw_brands')->updateOrInsert(
                 ['slug' => $brand['slug']],
                 [
                     'name' => $brand['name'],

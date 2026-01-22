@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Model;
 
-class Brand extends Model
+class AwBrand extends Model
 {
     use SoftDeletes;
 
@@ -18,6 +18,6 @@ class Brand extends Model
 
     public function products(): BelongsToMany
     {
-        return $this->belongsToMany(Product::class);
+        return $this->belongsToMany(AwProduct::class);
     }
 }

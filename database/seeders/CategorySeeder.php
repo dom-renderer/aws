@@ -19,12 +19,12 @@ class CategorySeeder extends Seeder
             ['name' => 'Electronics', 'parent_id' => null, 'tags' => json_encode(['electronics', 'techonology', 'devices']), 'description' => 'All types of electronics.', 'status' => 1],
         ];
 
-        DB::table('categories')->insert($categories);
+        DB::table('aw_categories')->insert($categories);
 
-        $foodId = DB::table('categories')->where('name', 'Food')->value('id');
-        $drinkId = DB::table('categories')->where('name', 'Drinks')->value('id');
-        $alcoholId = DB::table('categories')->where('name', 'Alcohol')->value('id');
-        $electronicId = DB::table('categories')->where('name', 'Electronics')->value('id');
+        $foodId = DB::table('aw_categories')->where('name', 'Food')->value('id');
+        $drinkId = DB::table('aw_categories')->where('name', 'Drinks')->value('id');
+        $alcoholId = DB::table('aw_categories')->where('name', 'Alcohol')->value('id');
+        $electronicId = DB::table('aw_categories')->where('name', 'Electronics')->value('id');
 
         $subcategories = [
             ['name' => 'Snacks', 'parent_id' => $foodId, 'tags' => json_encode(['chips', 'biscuits', 'crisps']), 'description' => 'Packaged and ready-to-eat snacks.', 'status' => 1],
@@ -44,6 +44,6 @@ class CategorySeeder extends Seeder
             ['name' => 'Laptop', 'parent_id' => $electronicId, 'tags' => json_encode(['laptop', 'computer', 'pc']), 'description' => 'Laptops.', 'status' => 1],
         ];
 
-        DB::table('categories')->insert($subcategories);
+        DB::table('aw_categories')->insert($subcategories);
     }
 }

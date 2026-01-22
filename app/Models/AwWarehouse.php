@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Warehouse extends Model
+class AwWarehouse extends Model
 {
     protected $guarded = [];
 
@@ -37,5 +37,15 @@ class Warehouse extends Model
     public function city(): BelongsTo
     {
         return $this->belongsTo(City::class);
+    }
+
+    public function stocks()
+    {
+        return $this->hasMany(AwSupplierWarehouseProduct::class);
+    }
+
+    public function movements()
+    {
+        return $this->hasMany(AwInventoryMovement::class);
     }
 }
