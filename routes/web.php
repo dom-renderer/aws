@@ -37,7 +37,8 @@ Route::prefix('admin')->middleware(['auth', 'permission'])->group(function () {
     Route::get('home-page-settings', [App\Http\Controllers\HomePageSettingController::class, 'index'])->name('home-page-settings.index');
     Route::post('home-page-settings/reorder', [App\Http\Controllers\HomePageSettingController::class, 'reorder'])->name('home-page-settings.reorder');
     Route::post('home-page-settings/{key}', [App\Http\Controllers\HomePageSettingController::class, 'update'])->name('home-page-settings.update');
+
 });
 
-    Route::post('state-list', [\App\Helpers\Helper::class, 'getStatesByCountry'])->name('state-list');
-    Route::post('city-list', [\App\Helpers\Helper::class, 'getCitiesByState'])->name('city-list');
+Route::post('state-list', [\App\Helpers\Helper::class, 'getStatesByCountry'])->name('state-list');
+Route::post('city-list', [\App\Helpers\Helper::class, 'getCitiesByState'])->name('city-list');
