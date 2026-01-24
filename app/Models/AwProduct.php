@@ -45,4 +45,19 @@ class AwProduct extends Model
     {
         return $this->hasMany(AwInventoryMovement::class);
     }
+
+    public function tags()
+    {
+        return $this->belongsToMany(AwTag::class, 'aw_product_tags', 'product_id', 'tag_id');
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
+
+    public function scopeInactive($query)
+    {
+        return $query->where('status', 'inactive');
+    }
 }

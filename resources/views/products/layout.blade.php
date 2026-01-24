@@ -1,10 +1,31 @@
 @extends('layouts.app', ['title' => 'Product Management', 'subTitle' => 'Enter the information for your product', 'select2' => true, 'editor' => true])
 
 @push('css')
+<link href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.css" rel="stylesheet">
+<link href="https://unpkg.com/filepond/dist/filepond.css" rel="stylesheet">
 @stack('product-css')
 <style>
     label.error {
         color: red;
+    }
+    .note-editor.border-danger {
+        border: 1px solid #dc3545 !important;
+    }
+
+    .select2-container .select2-selection--single {
+        height: 44px;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 44px;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 44px;
+    }
+
+    .select2-container .select2-selection--single .select2-selection__rendered {
+        padding-top: 5px;
     }
 </style>
 @endpush
@@ -22,7 +43,7 @@
     </div>
 @endif
 
-<form action="{{ route('product-management', ['type' => encrypt($type), 'step' => encrypt($step), 'id' => encrypt($product->id)]) }}" method="POST" enctype="multipart/form-data" id="productStep1Form">
+<form action="{{ route('product-management', ['type' => encrypt($type), 'step' => encrypt($step), 'id' => encrypt($product->id)]) }}" method="POST" enctype="multipart/form-data" id="productForm">
     @csrf
 
     @yield('product-content')
@@ -37,5 +58,10 @@
 @endsection
 
 @push('js')
+<script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.js"></script>
+<script src="https://unpkg.com/filepond/dist/filepond.js"></script>
+<script>
+
+</script>
 @stack('product-js')
 @endpush

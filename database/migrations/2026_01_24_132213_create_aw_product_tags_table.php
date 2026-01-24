@@ -11,16 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('aw_product_images', function (Blueprint $table) {
+        Schema::create('aw_product_tags', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('product_id');
             $table->unsignedBigInteger('variant_id')->nullable();
-            $table->string('image_path');
-            $table->integer('position')->default(0);
+            $table->unsignedBigInteger('tag_id');
             $table->softDeletes();
             $table->timestamps();
-            
-            $table->index(['product_id', 'variant_id']);
         });
     }
 
@@ -29,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('aw_product_images');
+        Schema::dropIfExists('aw_product_tags');
     }
 };

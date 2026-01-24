@@ -20,4 +20,9 @@ class AwBrand extends Model
     {
         return $this->belongsToMany(AwProduct::class);
     }
+
+    public function scopeActive($query)
+    {
+        return $query->where('status', true);
+    }
 }

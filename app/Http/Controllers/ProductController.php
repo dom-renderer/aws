@@ -5,14 +5,9 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\VariableProductController;
 use App\Http\Controllers\BundledProductController;
 use App\Http\Controllers\SimpleProductController;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
-use App\Models\ProductImage;
-use App\Models\BrandProduct;
-use App\Models\Category;
 use App\Helpers\Helper;
-use App\Models\Product;
-use App\Models\Brand;
+use App\Models\AwProduct;
 
 class ProductController extends Controller
 {
@@ -22,12 +17,6 @@ class ProductController extends Controller
     public function __construct()
     {
         $this->middleware('permission:products.index')->only(['index']);
-        $this->middleware('permission:products.create')->only(['create']);
-        $this->middleware('permission:products.store')->only(['store']);
-        $this->middleware('permission:products.edit')->only(['edit']);
-        $this->middleware('permission:products.update')->only(['update']);
-        $this->middleware('permission:products.show')->only(['show']);
-        $this->middleware('permission:products.destroy')->only(['destroy']);
         $this->middleware('permission:product-management')->only(['steps']);
     }
 
@@ -44,41 +33,30 @@ class ProductController extends Controller
 
     public function ajax()
     {
-        $query = Product::query();
+        $query = AwProduct::query();
 
         return datatables()
         ->eloquent($query)
-        ->addColumn('category_name', function ($row) {
-            return $row->primaryCategory?->name ?? '—';
-        })
-        ->addColumn('status_badge', function ($row) {
-            return $row->status ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
-        })
-        ->addColumn('stock_badge', function ($row) {
-            return $row->in_stock ? '<span class="badge bg-info">In stock</span>' : '<span class="badge bg-warning">Out of stock</span>';
-        })
         ->addColumn('action', function ($row) {
             $html = '';
             if (auth()?->user()?->isAdmin() || auth()->guard('web')->user()->can('products.edit')) {
                 $html .= '<a href="' . route('product-management', ['type' => encrypt($row->type), 'step' => encrypt(1), 'id' => encrypt($row->id)]) . '" class="btn btn-sm btn-primary"> <i class="fa fa-edit"> </i> </a>&nbsp;';
             }
 
-            $html .= '<a target="_blank" href="' . route('product.index', ['product_slug' => $row->slug, 'short_url' => $row->short_url]) . '" class="btn btn-sm btn-primary"> <i class="fa fa-eye"></i> Spectate </a>';
-
             return $html;
         })
-        ->editColumn('type', function ($row) {
-            if ($row->type == 'simple') {
+        ->editColumn('product_type', function ($row) {
+            if ($row->product_type == 'simple') {
                 return "Simple";
-            } else if ($row->type == 'variable') {
+            } else if ($row->product_type == 'variable') {
                 return "Variable";
-            } else if ($row->type == 'bundled') {
-                return "Bundled";
+            } else if ($row->product_type == 'bundle') {
+                return "Bundle";
             } else {
                 return "Unknown";
             }
         })
-        ->rawColumns(['action', 'status_badge', 'stock_badge', 'type'])
+        ->rawColumns(['action', 'product_type'])
         ->addIndexColumn()
         ->toJson();
     }
@@ -96,7 +74,7 @@ class ProductController extends Controller
 
         $type = decrypt($type);
 
-        if (!in_array($type, ['simple', 'variable', 'bundled'])) {
+        if (!in_array($type, ['simple', 'variable', 'bundle'])) {
             abort(404, $notFoundMessage);
         }
 
@@ -110,24 +88,23 @@ class ProductController extends Controller
             abort(404, $notFoundMessage);
         }
 
-        if ($type == 'bundled' && !($step >= 1 && $step <= 4)) {
+        if ($type == 'bundle' && !($step >= 1 && $step <= 4)) {
             abort(404, $notFoundMessage);
         }
 
         if (empty($id)) {
-            $product = Product::create([
+            $product = AwProduct::create([
                 'name' => 'Untitled Product',
-                'short_url' => uniqid() . '-' . uniqid(),
                 'slug' => uniqid() . '-' . uniqid(),
-                'type' => $type
+                'product_type' => $type
             ]);
 
             return redirect()->route('product-management', ['type' => encrypt($type), 'step' => encrypt($step), 'id' => encrypt($product->id)]);
         }
 
         $id = decrypt($id);
-        $product = Product::find($id);
-        $product->type = $type;
+        $product = AwProduct::find($id);
+        $product->product_type = $type;
         $product->save();
 
         if ($request->method() == 'GET') {
@@ -139,7 +116,7 @@ class ProductController extends Controller
                 return VariableProductController::view($product, $step, $type);
             }
 
-            if ($type == 'bundled') {
+            if ($type == 'bundle') {
                 return BundledProductController::view($product, $step, $type);
             }
         } else {
@@ -151,7 +128,7 @@ class ProductController extends Controller
                 return VariableProductController::store($request, $step, $id);
             }
 
-            if ($type == 'bundled') {
+            if ($type == 'bundle') {
                 return BundledProductController::store($request, $step, $id);
             }
         }
