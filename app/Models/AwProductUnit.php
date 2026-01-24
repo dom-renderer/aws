@@ -14,17 +14,17 @@ class AwProductUnit extends Model
 
     public function product()
     {
-        return $this->belongsTo(AwProduct::class);
+        return $this->belongsTo(AwProduct::class, 'product_id');
     }
 
     public function variant()
     {
-        return $this->belongsTo(AwProductVariant::class);
+        return $this->belongsTo(AwProductVariant::class, 'variant_id');
     }
 
     public function unit()
     {
-        return $this->belongsTo(AwUnit::class);
+        return $this->belongsTo(AwUnit::class, 'unit_id');
     }
 
     public function parentUnit()

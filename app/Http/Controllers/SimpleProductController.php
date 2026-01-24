@@ -21,8 +21,10 @@ class SimpleProductController extends Controller
         $productTagIds = $product->tags->pluck('id')->toArray();
         $mainImage = $product->images->where('position', 0)->first();
         $gallery = $product->images->where('position', '>', 0)->sortBy('position');
+        $baseProductUnit = $product->units->where('is_base', 1)->first();
+        $additionalUnits = $product->units->where('is_base', 0)->sortBy('conversion_factor')->values();
 
-        return view("products/{$type}/step-{$step}", compact('product', 'step', 'type', 'brands', 'productTagIds', 'allTags', 'mainImage', 'gallery', 'units'));
+        return view("products/{$type}/step-{$step}", compact('product', 'step', 'type', 'brands', 'productTagIds', 'allTags', 'mainImage', 'gallery', 'units', 'baseProductUnit', 'additionalUnits'));
     }
 
     public static function store(Request $request, $step, $id, $type = 'simple')
@@ -151,8 +153,8 @@ class SimpleProductController extends Controller
         $request->validate([
             'base_unit_id' => 'required|exists:aw_units,id',
             'units' => 'nullable|array',
-            'units.*.unit_id' => 'required|distinct|exists:aw_units,id|different:base_unit_id',
-            'units.*.quantity' => 'required|numeric|min:1',
+            'units.*.unit_id' => 'required|exists:aw_units,id',
+            'units.*.quantity' => 'required|numeric|min:0.0001',
             'default_selling_unit' => 'required'
         ]);
 

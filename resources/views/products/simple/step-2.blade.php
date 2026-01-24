@@ -14,14 +14,14 @@
                     <select name="base_unit_id" id="base_unit_id" class="form-control select2-unit" required>
                         <option value="">Select Base Unit</option>
                         @foreach($units as $unit)
-                            <option value="{{ $unit->id }}" data-name="{{ $unit->name }}">{{ $unit->name }}</option>
+                            <option value="{{ $unit->id }}" @if(isset($baseProductUnit->id) && $unit->id == $baseProductUnit->id) selected @endif data-name="{{ $unit->name }}">{{ $unit->name }}</option>
                         @endforeach
                     </select>
                     <small class="text-muted">Smallest unit of measure</small>
                 </div>
                 <div class="col-md-4 text-center">
                     <div class="form-check form-switch d-inline-block">
-                        <input class="form-check-input" type="radio" name="default_selling_unit" value="base" checked>
+                        <input class="form-check-input" type="radio" name="default_selling_unit" value="base" @if(isset($baseProductUnit->id) && $baseProductUnit->is_default_selling) checked @endif>
                         <label class="form-check-label">Default Selling Unit</label>
                     </div>
                 </div>
@@ -29,7 +29,48 @@
         </div>
 
         <div id="additional-units-wrapper">
-            </div>
+            @if(isset($additionalUnits) && $additionalUnits->count() > 0)
+                @foreach($additionalUnits as $index => $ap_unit)
+                    <div class="unit-row border p-3 mb-2 rounded shadow-sm bg-white position-relative" data-index="{{ $index }}">
+                        <button type="button" class="btn btn-outline-danger btn-sm position-absolute end-0 top-0 m-2 remove-row">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                        <div class="row align-items-center">
+                            <div class="col-md-3">
+                                <label class="small fw-bold">Unit Name</label>
+                                <select name="units[{{ $index }}][unit_id]" class="form-control select2-unit unit-select" required>
+                                    @foreach($units as $u)
+                                        <option value="{{ $u->id }}" data-name="{{ $u->name }}" 
+                                            {{ $ap_unit->unit_id == $u->id ? 'selected' : '' }}>{{ $u->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            @php
+                                $parentUnit = ($index === 0) ? $baseProductUnit : $additionalUnits[$index-1];
+                                $relativeQty = $ap_unit->conversion_factor / $parentUnit->conversion_factor;
+                            @endphp
+                            <div class="col-md-2">
+                                <label class="small fw-bold">Quantity</label>
+                                <input type="number" name="units[{{ $index }}][quantity]" class="form-control unit-qty" 
+                                    min="0.0001" step="any" value="{{ round($relativeQty, 4) }}" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="small fw-bold">Per Parent Unit</label>
+                                <input type="text" class="form-control bg-light parent-unit-display" readonly>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <div class="form-check form-switch pt-4">
+                                    <input class="form-check-input" type="radio" name="default_selling_unit" value="{{ $index }}"
+                                        {{ $ap_unit->is_default_selling ? 'checked' : '' }}>
+                                    <label class="form-check-label">Default Selling</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-2 p-2 bg-light rounded hierarchy-summary text-primary border-start border-primary border-3"></div>
+                    </div>
+                @endforeach
+            @endif
+        </div>
         
         <div id="unit-validation-error" class="alert alert-danger d-none mt-2"></div>
     </div>
@@ -44,82 +85,101 @@
 <script>
 $(document).ready(function() {
     let unitsData = @json($units);
-    
+
+    function initStep2() {
+        if ($('.unit-row').length > 0) {
+            $('.select2-unit').select2();
+            updateFullChain();
+        }
+    }
+
+    initStep2();
+
+    function updateFullChain() {
+        let baseUnitName = $('#base_unit_id option:selected').data('name') || '[Base]';
+        let runningFactor = 1;
+        let chainPath = baseUnitName;
+
+        $('.unit-row').each(function(index) {
+            let row = $(this);
+            let currentUnitName = row.find('.unit-select option:selected').data('name') || `[Unit ${index + 1}]`;
+            let qty = parseFloat(row.find('.unit-qty').val()) || 1;
+            
+            let prevUnitName = (index === 0) 
+                ? baseUnitName 
+                : row.prev('.unit-row').find('.unit-select option:selected').data('name') || `[Unit ${index}]`;
+            
+            runningFactor *= qty;
+
+            row.find('.parent-unit-display').val(prevUnitName);
+            
+            let formulaHtml = `<strong>1 ${currentUnitName}</strong> = ${qty} ${prevUnitName}`;
+            
+            if (index > 0) {
+                formulaHtml += ` = ${runningFactor} ${baseUnitName}`;
+            }
+
+            row.find('.hierarchy-summary').html(formulaHtml);
+        });
+    }
+
+    $(document).on('change', '#base_unit_id', function() {
+        updateFullChain();
+    });
+
+    $(document).on('change keyup', '.unit-qty, .unit-select', function() {
+        updateFullChain();
+    });
+
     $('#add-unit-btn').on('click', function() {
         const rowCount = $('.unit-row').length;
-        const prevUnitName = rowCount === 0 
-            ? $('#base_unit_id option:selected').data('name') 
-            : $('.unit-row').last().find('.unit-select option:selected').data('name');
-
         if (!$('#base_unit_id').val()) {
             alert("Please select a Base Unit first.");
             return;
         }
 
         const html = `
-            <div class="unit-row border p-3 mb-2 rounded position-relative" data-index="${rowCount}">
-                <button type="button" class="btn btn-danger btn-sm position-absolute end-0 top-0 m-2 remove-row"><i class="fa fa-trash"></i></button>
+            <div class="unit-row border p-3 mb-2 rounded shadow-sm bg-white position-relative">
+                <button type="button" class="btn btn-outline-danger btn-sm position-absolute end-0 top-0 m-2 remove-row">
+                    <i class="fa fa-trash"></i>
+                </button>
                 <div class="row align-items-center">
                     <div class="col-md-3">
-                        <label>Unit Name</label>
+                        <label class="small fw-bold">Unit Name</label>
                         <select name="units[${rowCount}][unit_id]" class="form-control select2-unit unit-select" required>
                             <option value="">Select Unit</option>
                             ${unitsData.map(u => `<option value="${u.id}" data-name="${u.name}">${u.name}</option>`).join('')}
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <label>Quantity</label>
-                        <input type="number" name="units[${rowCount}][quantity]" class="form-control unit-qty" min="1" value="1" required>
+                        <label class="small fw-bold">Quantity</label>
+                        <input type="number" name="units[${rowCount}][quantity]" class="form-control unit-qty" min="1" step="any" value="1" required>
                     </div>
                     <div class="col-md-3">
-                        <label>Per Parent Unit</label>
-                        <input type="text" class="form-control bg-light parent-unit-display" value="${prevUnitName}" readonly>
+                        <label class="small fw-bold">Per Parent Unit</label>
+                        <input type="text" class="form-control bg-light parent-unit-display" readonly>
                     </div>
                     <div class="col-md-3 text-center">
-                        <div class="form-check form-switch">
+                        <div class="form-check form-switch pt-4">
                             <input class="form-check-input" type="radio" name="default_selling_unit" value="${rowCount}">
                             <label class="form-check-label">Default Selling</label>
                         </div>
                     </div>
                 </div>
-                <div class="mt-2 small text-primary hierarchy-summary">
-                    1 <span class="curr-name">?</span> = <span class="curr-qty">1</span> ${prevUnitName}
-                </div>
+                <div class="mt-2 p-2 bg-light rounded hierarchy-summary text-primary border-start border-primary border-3">
+                    </div>
             </div>
         `;
+        
         $('#additional-units-wrapper').append(html);
         $('.select2-unit').select2();
-    });
-
-    // Validation: Prevent duplicate units in the chain
-    $(document).on('change', '.select2-unit', function() {
-        let selectedValues = $('.select2-unit').map(function() { return $(this).val(); }).get().filter(v => v !== "");
-        let hasDuplicates = new Set(selectedValues).size !== selectedValues.length;
-        
-        if (hasDuplicates) {
-            alert("This unit is already used in the hierarchy. Please select a unique unit.");
-            $(this).val(null).trigger('change');
-        }
-        
-        // Update summary text
-        let row = $(this).closest('.unit-row');
-        row.find('.curr-name').text($(this).find('option:selected').data('name') || '?');
+        updateFullChain();
     });
 
     $(document).on('click', '.remove-row', function() {
         $(this).closest('.unit-row').remove();
-        // Re-calculate the "Per Parent" labels for all subsequent rows
-        updateParentLabels();
+        updateFullChain();
     });
-
-    function updateParentLabels() {
-        let currentParent = $('#base_unit_id option:selected').data('name');
-        $('.unit-row').each(function() {
-            $(this).find('.parent-unit-display').val(currentParent);
-            $(this).find('.hierarchy-summary').find('span:last').text(currentParent);
-            currentParent = $(this).find('.unit-select option:selected').data('name') || '?';
-        });
-    }
 });
 </script>
 @endpush
