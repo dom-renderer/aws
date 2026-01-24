@@ -34,6 +34,6 @@ class AwProductUnit extends Model
 
     public function price()
     {
-        return $this->hasOne(AwPrice::class, 'unit_id');
+        return $this->hasOne(AwPrice::class, 'unit_id')->where('product_id', $this->product_id);
     }
 }

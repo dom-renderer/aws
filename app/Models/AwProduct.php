@@ -41,6 +41,11 @@ class AwProduct extends Model
         return $this->hasOne(AwBundle::class, 'product_id');
     }
 
+    public function supplierWarehouseProducts()
+    {
+        return $this->hasMany(AwSupplierWarehouseProduct::class, 'product_id');
+    }
+
     public function inventoryMovements()
     {
         return $this->hasMany(AwInventoryMovement::class, 'product_id');

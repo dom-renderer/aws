@@ -38,6 +38,8 @@ Route::prefix('admin')->middleware(['auth', 'permission'])->group(function () {
     Route::post('home-page-settings/reorder', [App\Http\Controllers\HomePageSettingController::class, 'reorder'])->name('home-page-settings.reorder');
     Route::post('home-page-settings/{key}', [App\Http\Controllers\HomePageSettingController::class, 'update'])->name('home-page-settings.update');
 
+    Route::get('/inventory/history/{productId}/{warehouseId}', [\App\Http\Controllers\ProductController::class, 'getHistory']);
+    Route::post('/inventory/adjust', [\App\Http\Controllers\ProductController::class, 'adjust'])->name('inventory.adjust');
 });
 
 Route::post('state-list', [\App\Helpers\Helper::class, 'getStatesByCountry'])->name('state-list');

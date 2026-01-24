@@ -126,6 +126,44 @@ $(document).ready(function() {
         }
     });
 
+    $(document).on('click', '.copy-btn', function() {
+        const sourcePane = $(this).closest('.unit-pane');
+        const sourceMode = sourcePane.find('.pricing-type-selector').val();
+        const sourceBasePrice = sourcePane.find('.base-price-input').val();
+        
+        $('.unit-pane').not(sourcePane).each(function() {
+            const targetPane = $(this);
+            const targetUnitId = targetPane.data('unit-id');
+            
+            targetPane.find('.pricing-type-selector').val(sourceMode).trigger('change');
+            targetPane.find('.base-price-input').val(sourceBasePrice);
+            
+            if (sourceMode === 'tiered') {
+                const targetBody = targetPane.find('.tier-body');
+                targetBody.empty();
+                
+                sourcePane.find('.tier-row').each(function(idx) {
+                    const min = $(this).find('input[name*="[min_qty]"]').val();
+                    const max = $(this).find('input[name*="[max_qty]"]').val();
+                    const price = $(this).find('input[name*="[price]"]').val();
+                    
+                    const newRow = `
+                        <tr class="tier-row">
+                            <td><input type="number" name="pricing[${targetUnitId}][tiers][${idx}][min_qty]" class="form-control" value="${min}"></td>
+                            <td><input type="number" name="pricing[${targetUnitId}][tiers][${idx}][max_qty]" class="form-control" value="${max}"></td>
+                            <td><input type="number" name="pricing[${targetUnitId}][tiers][${idx}][price]" class="form-control tier-price-input" step="0.01" value="${price}"></td>
+                            <td class="discount-label pt-3 fw-bold text-success">0%</td>
+                            <td><button type="button" class="btn btn-link text-danger remove-tier p-0"><i class="fa fa-trash"></i></button></td>
+                        </tr>`;
+                    targetBody.append(newRow);
+                });
+            }
+            calculatePaneSummary(targetPane);
+        });
+        
+        alert("Pricing structure copied to all units. Don't forget to save!");
+    });
+
     $(document).on('click', '.add-tier-btn', function() {
         const unitId = $(this).data('unit-id');
         const body = $(this).closest('.tier-section').find('.tier-body');

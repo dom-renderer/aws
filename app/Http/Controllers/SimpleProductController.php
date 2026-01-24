@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{AwProduct, AwBrand, AwTag, AwProductTag, AwProductUnit, AwCategory, AwProductImage, AwUnit, AwPrice, AwPriceTier};
+use App\Models\{User, AwProduct, AwWarehouse, AwBrand, AwTag, AwProductTag, AwProductUnit, AwSupplierWarehouseProduct, AwInventoryMovement, AwProductImage, AwUnit, AwPrice, AwPriceTier};
 use Illuminate\Support\Facades\{Log, DB};
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -21,8 +21,13 @@ class SimpleProductController extends Controller
         $baseProductUnit = $product->units->where('is_base', 1)->first();
         $additionalUnits = $product->units->where('is_base', 0)->sortBy('conversion_factor')->values();
         $allUnits = $product->units->sortByDesc('is_base');
+        $warehouses = AwWarehouse::all();
+        $suppliers = User::whereHas('roles', function ($q) {
+            $q->where('slug', 'supplier');
+        })->get();
+        $existingInventory = $product->supplierWarehouseProducts;
 
-        return view("products/{$type}/step-{$step}", compact('product', 'step', 'type', 'brands', 'productTagIds', 'allTags', 'mainImage', 'gallery', 'units', 'baseProductUnit', 'additionalUnits', 'allUnits'));
+        return view("products/{$type}/step-{$step}", compact('product', 'step', 'type', 'brands', 'productTagIds', 'allTags', 'mainImage', 'gallery', 'units', 'baseProductUnit', 'additionalUnits', 'allUnits', 'warehouses', 'suppliers', 'existingInventory'));
     }
 
     public static function store(Request $request, $step, $id, $type = 'simple')
@@ -37,7 +42,7 @@ class SimpleProductController extends Controller
             case 3: // pricing units wise (tier or non-tier pricing)
                 return self::pricing($request, $step, $id, $product, $type = 'simple');
             case 4: // supplier mapping
-
+                return self::supplier($request, $step, $id, $product, $type = 'simple');
             case 5: // inventory & stock management
 
             case 6: // categories & seo content
@@ -241,6 +246,74 @@ class SimpleProductController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withErrors('Pricing Sync Failed: ' . $e->getMessage());
+        }
+    }
+
+    private static function supplier(Request $request, $step, $id, $product, $type = 'simple')
+    {
+        $request->validate([
+            'inventory' => 'required|array',
+            'inventory.*.supplier_id' => 'required|exists:users,id',
+            'inventory.*.warehouse_id' => 'required|exists:aw_warehouses,id',
+            'inventory.*.unit_id' => 'required|exists:aw_units,id',
+            'inventory.*.quantity' => 'required|integer|min:0',
+            'inventory.*.cost_price' => 'required|numeric|min:0',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $keptMappingIds = [];
+
+            foreach ($request->inventory as $item) {
+                $existingRecord = AwSupplierWarehouseProduct::where([
+                    'product_id' => $id,
+                    'supplier_id' => $item['supplier_id'],
+                    'warehouse_id' => $item['warehouse_id'],
+                    'unit_id' => $item['unit_id']
+                ])->first();
+
+                $newQty = (int)$item['quantity'];
+                $oldQty = $existingRecord ? (int)$existingRecord->quantity : 0;
+                $difference = $newQty - $oldQty;
+
+                $mapping = AwSupplierWarehouseProduct::updateOrCreate(
+                    [
+                        'product_id' => $id,
+                        'supplier_id' => $item['supplier_id'],
+                        'warehouse_id' => $item['warehouse_id'],
+                        'unit_id' => $item['unit_id']
+                    ],
+                    [
+                        'quantity' => $newQty,
+                        'cost_price' => $item['cost_price'],
+                        'reorder_level' => $item['reorder_level'],
+                        'max_stock' => $item['max_stock'],
+                        'notes' => $item['notes']
+                    ]
+                );
+
+                if ($difference !== 0) {
+                    AwInventoryMovement::create([
+                        'product_id' => $id,
+                        'unit_id' => $item['unit_id'],
+                        'warehouse_id' => $item['warehouse_id'],
+                        'quantity_change' => $difference,
+                        'reason' => $existingRecord ? 'adjustment' : 'purchase',
+                        'reference' => $existingRecord ? 'Manual Quantity Update' : 'Initial Stock Entry',
+                    ]);
+                }
+                $keptMappingIds[] = $mapping->id;
+            }
+
+            AwSupplierWarehouseProduct::where('product_id', $id)
+                ->whereNotIn('id', $keptMappingIds)
+                ->delete();
+
+            DB::commit();
+            return redirect()->route('product-management', ['type' => encrypt($type), 'step' => encrypt(5), 'id' => encrypt($id)]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors('Inventory Sync Failed: ' . $e->getMessage());
         }
     }
 }

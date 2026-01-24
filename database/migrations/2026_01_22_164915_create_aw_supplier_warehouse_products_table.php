@@ -19,6 +19,9 @@ return new class extends Migration
             $table->unsignedBigInteger('variant_id')->nullable();
             $table->unsignedBigInteger('unit_id')->nullable();
             $table->integer('quantity');
+            $table->integer('reorder_level')->default(0)->nullable();
+            $table->integer('max_stock')->default(0)->nullable();
+            $table->text('notes')->nullable();
             $table->decimal('cost_price', 12, 2)->nullable();
 
             $table->softDeletes();

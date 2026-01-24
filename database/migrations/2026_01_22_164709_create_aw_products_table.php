@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('aw_products', function (Blueprint $table) {
             $table->id();
-            $table->enum('product_type', ['single', 'variable', 'bundle'])->index();
+            $table->enum('product_type', ['simple', 'variable', 'bundle'])->index();
             $table->string('name');
             $table->string('slug')->unique();
             $table->foreignId('brand_id')->nullable()->index();

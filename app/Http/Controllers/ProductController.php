@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\{AwSupplierWarehouseProduct, AwInventoryMovement, AwProduct};
 use App\Http\Controllers\VariableProductController;
 use App\Http\Controllers\BundledProductController;
 use App\Http\Controllers\SimpleProductController;
+use Illuminate\Support\Facades\{Log, DB};
 use Illuminate\Http\Request;
 use App\Helpers\Helper;
-use App\Models\AwProduct;
 
 class ProductController extends Controller
 {
@@ -40,7 +41,7 @@ class ProductController extends Controller
         ->addColumn('action', function ($row) {
             $html = '';
             if (auth()?->user()?->isAdmin() || auth()->guard('web')->user()->can('products.edit')) {
-                $html .= '<a href="' . route('product-management', ['type' => encrypt($row->type), 'step' => encrypt(1), 'id' => encrypt($row->id)]) . '" class="btn btn-sm btn-primary"> <i class="fa fa-edit"> </i> </a>&nbsp;';
+                $html .= '<a href="' . route('product-management', ['type' => encrypt($row->product_type), 'step' => encrypt(1), 'id' => encrypt($row->id)]) . '" class="btn btn-sm btn-primary"> <i class="fa fa-edit"> </i> </a>&nbsp;';
             }
 
             return $html;
@@ -132,5 +133,52 @@ class ProductController extends Controller
                 return BundledProductController::store($request, $step, $id);
             }
         }
+    }
+
+    public function getHistory($productId, $warehouseId)
+    {
+        $history = AwInventoryMovement::where('product_id', $productId)
+            ->where('warehouse_id', $warehouseId)
+            ->orderBy('created_at', 'desc')
+            ->take(10)
+            ->get();
+
+        return response()->json($history);
+    }
+
+    public function adjust(Request $request)
+    {
+        $request->validate([
+            'mapping_id' => 'required|exists:aw_supplier_warehouse_products,id',
+            'adjustment_qty' => 'required|numeric',
+            'reason' => 'required|string|max:255'
+        ]);
+
+        return DB::transaction(function () use ($request) {
+            $mapping = AwSupplierWarehouseProduct::lockForUpdate()->find($request->mapping_id);
+            
+            $oldQty = $mapping->quantity;
+            $adjustment = $request->adjustment_qty;
+            $newQty = $oldQty + $adjustment;
+
+            $mapping->update(['quantity' => $newQty]);
+
+            AwInventoryMovement::create([
+                'product_id'   => $mapping->product_id,
+                'variant_id'   => $mapping->variant_id,
+                'unit_id'      => $mapping->unit_id,
+                'warehouse_id' => $mapping->warehouse_id,
+                'quantity_change' => $adjustment,
+                'reason'       => 'adjustment',
+                'reference'    => $request->reason,
+                'reference_id' => $mapping->id
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'new_qty' => $newQty,
+                'message' => 'Stock adjusted successfully.'
+            ]);
+        });
     }
 }
