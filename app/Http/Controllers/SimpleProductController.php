@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{User, AwProduct, AwWarehouse, AwBrand, AwTag, AwProductTag, AwProductUnit, AwSupplierWarehouseProduct, AwInventoryMovement, AwProductImage, AwUnit, AwPrice, AwPriceTier};
+use App\Models\{User, AwProduct, AwWarehouse, AwBrand, AwCategory, AwTag, AwProductTag, AwProductUnit, AwSupplierWarehouseProduct, AwInventoryMovement, AwProductImage, AwUnit, AwPrice, AwPriceTier, AwProductCategory};
 use Illuminate\Support\Facades\{Log, DB};
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -26,8 +26,12 @@ class SimpleProductController extends Controller
             $q->where('slug', 'supplier');
         })->get();
         $existingInventory = $product->supplierWarehouseProducts;
+        $allCategories = AwCategory::whereNull('parent_id')->with('children')->get();
+        $currentPrimaryId = AwProductCategory::where('product_id', $product->id)->where('is_primary', 1)->value('category_id');
+        $allCategoriesAddtionalList = AwCategory::where('id', '!=', $currentPrimaryId)->toBase()->get();
+        $currentAdditionalIds = AwProductCategory::where('product_id', $product->id)->where('is_primary', 0)->pluck('category_id')->toArray();
 
-        return view("products/{$type}/step-{$step}", compact('product', 'step', 'type', 'brands', 'productTagIds', 'allTags', 'mainImage', 'gallery', 'units', 'baseProductUnit', 'additionalUnits', 'allUnits', 'warehouses', 'suppliers', 'existingInventory'));
+        return view("products/{$type}/step-{$step}", compact('product', 'step', 'type', 'brands', 'productTagIds', 'allTags', 'mainImage', 'gallery', 'units', 'baseProductUnit', 'additionalUnits', 'allUnits', 'warehouses', 'suppliers', 'existingInventory', 'allCategories', 'currentPrimaryId', 'currentAdditionalIds', 'allCategoriesAddtionalList'));
     }
 
     public static function store(Request $request, $step, $id, $type = 'simple')
@@ -43,11 +47,9 @@ class SimpleProductController extends Controller
                 return self::pricing($request, $step, $id, $product, $type = 'simple');
             case 4: // supplier mapping
                 return self::supplier($request, $step, $id, $product, $type = 'simple');
-            case 5: // inventory & stock management
-
-            case 6: // categories & seo content
-
-            case 7: // final overview
+            case 5: // categories & seo content
+                return self::categories($request, $step, $id, $product, $type = 'simple');
+            case 6: // final overview
 
             default:
                 abort(404);
@@ -316,4 +318,52 @@ class SimpleProductController extends Controller
             return back()->withErrors('Inventory Sync Failed: ' . $e->getMessage());
         }
     }
+
+    private static function categories(Request $request, $step, $id, $product, $type = 'simple')
+    {
+        $request->validate([
+            'primary_category_id' => 'required|exists:aw_categories,id',
+            'additional_categories' => 'nullable|array',
+            'additional_categories.*' => 'exists:aw_categories,id',
+            'meta_title' => 'nullable|string|max:255',
+            'meta_description' => 'nullable|string|max:500',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $product = AwProduct::findOrFail($id);
+            
+            $product->update([
+                'meta_title' => $request->meta_title,
+                'meta_content' => $request->meta_description,
+            ]);
+
+            $categoriesToSync = [];
+
+            $categoriesToSync[$request->primary_category_id] = ['is_primary' => 1];
+
+            if ($request->has('additional_categories')) {
+                foreach ($request->additional_categories as $catId) {
+                    if ($catId != $request->primary_category_id) {
+                        $categoriesToSync[$catId] = ['is_primary' => 0];
+                    }
+                }
+            }
+
+            $product->categories()->sync($categoriesToSync);
+
+            DB::commit();
+            
+            return redirect()->route('product-management', [
+                'type' => encrypt($type), 
+                'step' => encrypt(6), 
+                'id' => encrypt($id)
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors('Categorization Error: ' . $e->getMessage());
+        }
+    }
+
 }

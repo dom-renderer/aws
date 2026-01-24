@@ -16,11 +16,6 @@ class AwProduct extends Model
         return $this->hasMany(AwProductVariant::class, 'product_id');
     }
 
-    public function categories()
-    {
-        return $this->hasMany(AwProductCategory::class, 'product_id');
-    }
-
     public function images()
     {
         return $this->hasMany(AwProductImage::class, 'product_id');
@@ -54,6 +49,17 @@ class AwProduct extends Model
     public function tags()
     {
         return $this->belongsToMany(AwTag::class, 'aw_product_tags', 'product_id', 'tag_id');
+    }
+
+    public function categories()
+    {
+        return $this->belongsToMany(
+            AwCategory::class, 
+            'aw_product_categories',
+            'product_id',
+            'category_id'
+        )->withPivot('is_primary')
+        ->withTimestamps();
     }
 
     public function scopeActive($query)

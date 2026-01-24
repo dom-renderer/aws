@@ -15,4 +15,9 @@ class AwProductCategory extends Model
     {
         return $this->belongsTo(AwProduct::class);
     }
+
+    public function category()
+    {
+        return $this->belongsTo(AwCategory::class, 'category_id');
+    }
 }
