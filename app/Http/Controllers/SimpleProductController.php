@@ -17,8 +17,10 @@ class SimpleProductController extends Controller
         $brands = AwBrand::active()->get();
         $allTags = AwTag::get();
         $productTagIds = $product->tags->pluck('id')->toArray();
+        $mainImage = $product->images->where('position', 0)->first();
+        $gallery = $product->images->where('position', '>', 0)->sortBy('position');
 
-        return view("products/{$type}/step-{$step}", compact('product', 'step', 'type', 'brands', 'productTagIds', 'allTags'));
+        return view("products/{$type}/step-{$step}", compact('product', 'step', 'type', 'brands', 'productTagIds', 'allTags', 'mainImage', 'gallery'));
     }
 
     public static function store(Request $request, $step, $id, $type = 'simple') {
@@ -26,16 +28,25 @@ class SimpleProductController extends Controller
 
         switch ($step) {
             case 1: //basic & media
+
             $request->validate([
                 'name' => 'required|string|max:255|unique:aw_products,name,' . $id,
                 'brand_id' => 'required|exists:aw_brands,id',
                 'short_description' => 'required|string|min:100',
                 'long_description' => 'required|string|min:200',
-                // 'main_image' => 'required|image|mimes:jpeg,png,webp|max:3072|dimensions:width=800,height=800',
-                'main_image' => 'required|image|mimes:jpeg,png,webp|max:3072',
-                'secondary_media.*' => 'nullable|mimes:jpeg,png,webp,mp4,wav|max:5120',
-                'tags' => 'nullable|array'
+                
+                'main_image' => $request->hasFile('main_image') 
+                    ? 'image|mimes:jpeg,png,webp|max:3072|dimensions:width=800,height=800' 
+                    : 'required', 
+
+                'secondary_media.*' => 'nullable', 
             ]);
+
+            if($request->hasFile('secondary_media')) {
+                $request->validate([
+                    'secondary_media.*' => 'mimes:jpeg,png,webp,mp4,wav|max:5120'
+                ]);
+            }
 
             DB::beginTransaction();
             try {
@@ -76,13 +87,25 @@ class SimpleProductController extends Controller
                     );
                 }
 
+                $existingIds = json_decode($request->existing_gallery_ids ?? '[]', true);
+                AwProductImage::where('product_id', $id)
+                    ->where('position', '>', 0)
+                    ->whereNotIn('id', $existingIds)
+                    ->delete();
+
+                foreach($existingIds as $index => $existingId) {
+                    AwProductImage::where('id', $existingId)->update(['position' => $index + 1]);
+                }
+
+                $lastPos = count($existingIds);
                 if ($request->hasFile('secondary_media')) {
-                    foreach ($request->file('secondary_media') as $index => $media) {
+                    foreach ($request->file('secondary_media') as $media) {
+                        $lastPos++;
                         $path = $media->store('products/gallery', 'public');
                         AwProductImage::create([
                             'product_id' => $id,
                             'image_path' => $path,
-                            'position' => $index + 1
+                            'position' => $lastPos
                         ]);
                     }
                 }

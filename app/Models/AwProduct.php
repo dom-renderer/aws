@@ -13,37 +13,37 @@ class AwProduct extends Model
 
     public function variants()
     {
-        return $this->hasMany(AwProductVariant::class);
+        return $this->hasMany(AwProductVariant::class, 'product_id');
     }
 
     public function categories()
     {
-        return $this->hasMany(AwProductCategory::class);
+        return $this->hasMany(AwProductCategory::class, 'product_id');
     }
 
     public function images()
     {
-        return $this->hasMany(AwProductImage::class);
+        return $this->hasMany(AwProductImage::class, 'product_id');
     }
 
     public function units()
     {
-        return $this->hasMany(AwProductUnit::class);
+        return $this->hasMany(AwProductUnit::class, 'product_id');
     }
 
     public function prices()
     {
-        return $this->hasMany(AwPrice::class);
+        return $this->hasMany(AwPrice::class, 'product_id');
     }
 
     public function bundle()
     {
-        return $this->hasOne(AwBundle::class);
+        return $this->hasOne(AwBundle::class, 'product_id');
     }
 
     public function inventoryMovements()
     {
-        return $this->hasMany(AwInventoryMovement::class);
+        return $this->hasMany(AwInventoryMovement::class, 'product_id');
     }
 
     public function tags()

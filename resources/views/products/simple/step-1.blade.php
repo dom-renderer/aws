@@ -71,16 +71,18 @@
                 <div class="card mb-3">
                     <div class="card-header">Main Image (800x800)</div>
                     <div class="card-body">
-                        <input type="file" name="main_image" id="mainImage" class="filepond">
+                        <input type="file" name="main_image" id="mainImage" @if($mainImage) data-default-file="{{ asset('storage/' . $mainImage->image_path) }}" @endif>
                     </div>
                 </div>
 
                 <div class="card">
                     <div class="card-header">Gallery (Max 5 Media)</div>
                     <div class="card-body">
-                        <input type="file" name="secondary_media[]" id="galleryMedia" class="filepond" multiple>
+                        <input type="file" name="secondary_media[]" id="galleryMedia" multiple>
+                        <input type="hidden" name="existing_gallery_ids" id="existing_gallery_ids">
                     </div>
                 </div>
+
             </div>
         </div>
 </div>
@@ -103,20 +105,57 @@
             ]
         });
 
-        FilePond.create(document.querySelector('#mainImage'), {
+        const mainPond = FilePond.create(document.querySelector('#mainImage'), {
             instantUpload: false,
             storeAsFile: true,
             acceptedFileTypes: ['image/png', 'image/jpeg', 'image/webp'],
-            maxFileSize: '3MB'
+            maxFileSize: '3MB',
+            files: [
+                @if($mainImage)
+                {
+                    source: '{{ asset("storage/" . $mainImage->image_path) }}',
+                    options: { 
+                        type: 'local',
+                        metadata: { poster: '{{ asset("storage/" . $mainImage->image_path) }}' } 
+                    }
+                }
+                @endif
+            ],
+            server: {
+                load: (source, load, error, progress, abort, headers) => {
+                    fetch(source).then(res => res.blob()).then(load);
+                }
+            }
         });
 
-        FilePond.create(document.querySelector('#galleryMedia'), {
+        const galleryPond = FilePond.create(document.querySelector('#galleryMedia'), {
             instantUpload: false,
             storeAsFile: true,
             allowMultiple: true,
             maxFiles: 5,
             allowReorder: true,
-            maxFileSize: '5MB'
+            maxFileSize: '5MB',
+            files: [
+                @foreach($gallery as $img)
+                {
+                    source: '{{ asset("storage/" . $img->image_path) }}',
+                    options: { 
+                        type: 'local',
+                        metadata: { id: '{{ $img->id }}' }
+                    }
+                },
+                @endforeach
+            ],
+            server: {
+                load: (source, load, error, progress, abort, headers) => {
+                    fetch(source).then(res => res.blob()).then(load);
+                }
+            }
+        });
+
+        $('#productForm').on('submit', function() {
+            const existingIds = galleryPond.getFiles().map(f => f.getMetadata('id'));
+            $('#existing_gallery_ids').val(JSON.stringify(existingIds));
         });
 
         function getSummernoteTextLength(selector) {
