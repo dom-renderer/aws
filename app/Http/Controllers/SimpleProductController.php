@@ -160,17 +160,17 @@ class SimpleProductController extends Controller
 
         DB::beginTransaction();
         try {
-            AwProductUnit::where('product_id', $id)->delete();
+            $baseUnit = AwProductUnit::updateOrCreate(
+                ['product_id' => $id, 'is_base' => 1],
+                [
+                    'unit_id' => $request->base_unit_id,
+                    'parent_unit_id' => null,
+                    'conversion_factor' => 1.0000,
+                    'is_default_selling' => ($request->default_selling_unit == 'base') ? 1 : 0
+                ]
+            );
 
-            $baseUnit = AwProductUnit::create([
-                'product_id' => $id,
-                'unit_id' => $request->base_unit_id,
-                'parent_unit_id' => null,
-                'conversion_factor' => 1.0000,
-                'is_base' => 1,
-                'is_default_selling' => ($request->default_selling_unit == 'base') ? 1 : 0
-            ]);
-
+            $keptUnitIds = [$baseUnit->id];
             $prevParentId = $request->base_unit_id;
             $runningFactor = 1.0000;
 
@@ -178,24 +178,30 @@ class SimpleProductController extends Controller
                 foreach ($request->units as $index => $u) {
                     $runningFactor = $runningFactor * $u['quantity'];
                     
-                    AwProductUnit::create([
-                        'product_id' => $id,
-                        'unit_id' => $u['unit_id'],
-                        'parent_unit_id' => $prevParentId,
-                        'conversion_factor' => $runningFactor,
-                        'is_base' => 0,
-                        'is_default_selling' => ($request->default_selling_unit == $index) ? 1 : 0
-                    ]);
+                    $unitRecord = AwProductUnit::updateOrCreate(
+                        ['product_id' => $id, 'unit_id' => $u['unit_id']],
+                        [
+                            'parent_unit_id' => $prevParentId,
+                            'conversion_factor' => $runningFactor,
+                            'is_base' => 0,
+                            'is_default_selling' => ($request->default_selling_unit == $index) ? 1 : 0
+                        ]
+                    );
 
+                    $keptUnitIds[] = $unitRecord->id;
                     $prevParentId = $u['unit_id'];
                 }
             }
+
+            AwProductUnit::where('product_id', $id)
+                ->whereNotIn('id', $keptUnitIds)
+                ->delete();
 
             DB::commit();
             return redirect()->route('product-management', ['type' => encrypt($type), 'step' => encrypt(3), 'id' => encrypt($id)]);
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withErrors('Unit structure error: ' . $e->getMessage());
+            return back()->withErrors('Sync error: ' . $e->getMessage());
         }
     }
 }

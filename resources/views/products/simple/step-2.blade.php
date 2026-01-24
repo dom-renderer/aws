@@ -14,7 +14,7 @@
                     <select name="base_unit_id" id="base_unit_id" class="form-control select2-unit" required>
                         <option value="">Select Base Unit</option>
                         @foreach($units as $unit)
-                            <option value="{{ $unit->id }}" @if(isset($baseProductUnit->id) && $unit->id == $baseProductUnit->id) selected @endif data-name="{{ $unit->name }}">{{ $unit->name }}</option>
+                            <option value="{{ $unit->id }}" @if(isset($baseProductUnit->id) && $unit->id == $baseProductUnit->unit_id) selected @endif data-name="{{ $unit->name }}">{{ $unit->name }}</option>
                         @endforeach
                     </select>
                     <small class="text-muted">Smallest unit of measure</small>
