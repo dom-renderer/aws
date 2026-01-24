@@ -13,6 +13,6 @@ class AwUnit extends Model
 
     public function productUnits()
     {
-        return $this->hasMany(AwProductUnit::class);
+        return $this->hasMany(AwProductUnit::class, 'unit_id');
     }
 }

@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('aw_prices', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('product_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('variant_id')->nullable()->constrained('product_variants')->nullOnDelete();
-            $table->foreignId('unit_id')->constrained();
+            $table->unsignedBigInteger('product_id');
+            $table->unsignedBigInteger('variant_id')->nullable();
+            $table->unsignedBigInteger('unit_id');
             $table->enum('pricing_type', ['fixed', 'tiered']);
             $table->decimal('base_price', 12, 2);
             $table->softDeletes();

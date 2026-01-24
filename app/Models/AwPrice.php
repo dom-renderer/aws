@@ -14,21 +14,21 @@ class AwPrice extends Model
 
     public function product()
     {
-        return $this->belongsTo(AwProduct::class);
+        return $this->belongsTo(AwProduct::class, 'product_id');
     }
 
     public function variant()
     {
-        return $this->belongsTo(AwProductVariant::class);
+        return $this->belongsTo(AwProductVariant::class, 'variant_id');
     }
 
     public function unit()
     {
-        return $this->belongsTo(AwUnit::class);
+        return $this->belongsTo(AwUnit::class, 'unit_id');
     }
 
     public function tiers()
     {
-        return $this->hasMany(AwPriceTier::class);
+        return $this->hasMany(AwPriceTier::class, 'price_id');
     }
 }

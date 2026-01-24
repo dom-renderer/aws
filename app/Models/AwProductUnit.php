@@ -31,4 +31,9 @@ class AwProductUnit extends Model
     {
         return $this->belongsTo(AwProductUnit::class, 'parent_unit_id');
     }
+
+    public function price()
+    {
+        return $this->hasOne(AwPrice::class, 'unit_id');
+    }
 }

@@ -13,6 +13,6 @@ class AwPriceTier extends Model
 
     public function price()
     {
-        return $this->belongsTo(AwPrice::class);
+        return $this->belongsTo(AwPrice::class, 'price_id');
     }
 }

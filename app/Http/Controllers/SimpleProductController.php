@@ -2,11 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{AwProduct, AwBrand, AwTag, AwProductTag, AwProductUnit, AwCategory, AwProductImage, AwProductVariant, AwUnit, AwVariant, AwVariantValue};
-use Illuminate\Support\Facades\Validator;
-use Intervention\Image\Facades\Image;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
+use App\Models\{AwProduct, AwBrand, AwTag, AwProductTag, AwProductUnit, AwCategory, AwProductImage, AwUnit, AwPrice, AwPriceTier};
+use Illuminate\Support\Facades\{Log, DB};
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -23,8 +20,9 @@ class SimpleProductController extends Controller
         $gallery = $product->images->where('position', '>', 0)->sortBy('position');
         $baseProductUnit = $product->units->where('is_base', 1)->first();
         $additionalUnits = $product->units->where('is_base', 0)->sortBy('conversion_factor')->values();
+        $allUnits = $product->units->sortByDesc('is_base');
 
-        return view("products/{$type}/step-{$step}", compact('product', 'step', 'type', 'brands', 'productTagIds', 'allTags', 'mainImage', 'gallery', 'units', 'baseProductUnit', 'additionalUnits'));
+        return view("products/{$type}/step-{$step}", compact('product', 'step', 'type', 'brands', 'productTagIds', 'allTags', 'mainImage', 'gallery', 'units', 'baseProductUnit', 'additionalUnits', 'allUnits'));
     }
 
     public static function store(Request $request, $step, $id, $type = 'simple')
@@ -37,7 +35,7 @@ class SimpleProductController extends Controller
             case 2: //units & unit conversation mapping
                 return self::units($request, $step, $id, $product, $type = 'simple');
             case 3: // pricing units wise (tier or non-tier pricing)
-
+                return self::pricing($request, $step, $id, $product, $type = 'simple');
             case 4: // supplier mapping
 
             case 5: // inventory & stock management
@@ -202,6 +200,47 @@ class SimpleProductController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withErrors('Sync error: ' . $e->getMessage());
+        }
+    }
+
+    private static function pricing(Request $request, $step, $id, $product, $type = 'simple')
+    {
+        DB::beginTransaction();
+        try {
+            foreach ($request->pricing as $unitId => $data) {
+
+                $priceRecord = AwPrice::updateOrCreate(
+                    ['product_id' => $id, 'unit_id' => $unitId],
+                    [
+                        'pricing_type' => $data['pricing_type'],
+                        'base_price' => $data['base_price']
+                    ]
+                );
+
+                if ($data['pricing_type'] === 'tiered' && isset($data['tiers'])) {
+                    $activeTierIds = [];
+                    foreach ($data['tiers'] as $tier) {
+                        $tierEntry = AwPriceTier::updateOrCreate(
+                            ['price_id' => $priceRecord->id, 'min_qty' => $tier['min_qty']],
+                            [
+                                'max_qty' => $tier['max_qty'],
+                                'price' => $tier['price']
+                            ]
+                        );
+                        $activeTierIds[] = $tierEntry->id;
+                    }
+
+                    AwPriceTier::where('price_id', $priceRecord->id)->whereNotIn('id', $activeTierIds)->delete();
+                } else {
+
+                    AwPriceTier::where('price_id', $priceRecord->id)->delete();
+                }
+            }
+            DB::commit();
+            return redirect()->route('product-management', ['type' => encrypt($type), 'step' => encrypt(4), 'id' => encrypt($id)]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors('Pricing Sync Failed: ' . $e->getMessage());
         }
     }
 }
