@@ -32,6 +32,26 @@
                         </div>
 
                         <div class="form-group mb-3">
+                            <div class="mb-3">
+                                <label class="form-label">Product Type <span class="text-danger">*</span></label>
+                                <div class="">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="type_switch" id="typeSimple" value="simple" {{ $product->product_type === 'simple' ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="typeSimple">Simple - Single product with no variations </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="type_switch" id="typeVariable" value="variable" {{ $product->product_type === 'variable' ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="typeVariable">Variable - Product with attributes & variants</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="type_switch" id="typeBundled" value="bundle" {{ $product->product_type === 'bundled' ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="typeBundled">Bundled - Multiple products sold together</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-3">
                             <label>Short Description (Min 100 chars) <span class="text-danger">*</span></label>
                             <div class="summernote-wrapper">
                                 <textarea name="short_description" id="short_desc" class="summernote">

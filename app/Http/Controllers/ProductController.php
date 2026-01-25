@@ -181,4 +181,37 @@ class ProductController extends Controller
             ]);
         });
     }
+
+    public function searchSubstitutes(Request $request)
+    {
+        $search = $request->get('q');
+        $excludeId = $request->get('exclude');
+
+        $products = AwProduct::query()
+            ->with('brand')
+            ->where('id', '!=', $excludeId)
+            ->where(function($query) use ($search) {
+                $query->where('name', 'LIKE', "%{$search}%")
+                    ->orWhere('slug', 'LIKE', "%{$search}%");
+                
+                $query->orWhereHas('variants', function($q) use ($search) {
+                    $q->where('sku', 'LIKE', "%{$search}%")
+                    ->orWhere('barcode', 'LIKE', "%{$search}%");
+                });
+            })
+            ->limit(10)
+            ->get();
+
+        return response()->json($products->map(function($product) {
+            return [
+                'id' => $product->id,
+                'name' => $product->name,
+                'sku' => $product->variants->first()?->sku ?? 'N/A',
+                'brand_name' => $product->brand?->name ?? 'No Brand',
+                'image_path' => $product->images->where('position', 0)->first()?->image_path 
+                                ? asset('storage/' . $product->images->where('position', 0)->first()->image_path)
+                                : asset('assets/images/default-product.png')
+            ];
+        }));
+    }
 }

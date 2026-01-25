@@ -51,6 +51,11 @@ class AwProduct extends Model
         return $this->belongsToMany(AwTag::class, 'aw_product_tags', 'product_id', 'tag_id');
     }
 
+    public function brand()
+    {
+        return $this->belongsTo(AwBrand::class, 'brand_id');
+    }
+
     public function categories()
     {
         return $this->belongsToMany(
@@ -61,6 +66,16 @@ class AwProduct extends Model
         )->withPivot('is_primary')
         ->withTimestamps();
     }
+
+    public function substitutes()
+    {
+        return $this->belongsToMany(
+            AwProduct::class, 
+            'aw_product_substitutes',
+            'product_id', 
+            'substitute_id'
+        )->withTimestamps();
+    }    
 
     public function scopeActive($query)
     {

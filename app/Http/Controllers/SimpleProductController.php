@@ -60,8 +60,10 @@ class SimpleProductController extends Controller
                 return self::supplier($request, $step, $id, $product, $type = 'simple');
             case 5: // categories & seo content
                 return self::categories($request, $step, $id, $product, $type = 'simple');
-            case 6: // final overview
-
+            case 6: // substitutes
+                return self::substitutes($request, $step, $id, $product, $type = 'simple');
+            case 7: // final overview
+                return self::review($request, $step, $id, $product, $type = 'simple');
             default:
                 abort(404);
                 break;
@@ -74,6 +76,7 @@ class SimpleProductController extends Controller
             'name' => 'required|string|max:255|unique:aw_products,name,' . $id,
             'brand_id' => 'required|exists:aw_brands,id',
             'short_description' => 'required|string|min:100',
+            'type_switch' => 'required|in:simple,variable,bundle',
             'long_description' => 'required|string|min:200',
 
             'main_image' => $request->hasFile('main_image')
@@ -95,6 +98,7 @@ class SimpleProductController extends Controller
             $product->update([
                 'name' => $request->name,
                 'slug' => str($request->name)->slug(),
+                'product_type' => $request->type_switch,
                 'brand_id' => $request->brand_id,
                 'short_description' => $request->short_description,
                 'long_description' => $request->long_description,
@@ -394,4 +398,43 @@ class SimpleProductController extends Controller
         }
     }
 
+    private static function substitutes(Request $request, $step, $id, $product, $type = 'simple')
+    {
+        $request->validate([
+            'substitutes' => 'nullable|array',
+            'substitutes.*' => 'exists:aw_products,id'
+        ]);
+
+        try {
+            $product = AwProduct::findOrFail($id);
+            $product->substitutes()->sync($request->substitutes ?? []);
+
+            return redirect()->route('product-management', [
+                'type' => encrypt($type), 
+                'step' => encrypt(7),
+                'id' => encrypt($id)
+            ]);
+        } catch (\Exception $e) {
+            return back()->withErrors('Error linking substitutes: ' . $e->getMessage());
+        }
+    }
+
+    private static function review(Request $request, $step, $id, $product, $type = 'simple')
+    {
+        try {
+            $product = AwProduct::findOrFail($id);
+            
+            if (!$product->categories()->where('is_primary', 1)->exists()) {
+                return back()->withErrors('Error: You must select a Primary Category in Step 5 before publishing.');
+            }
+
+            $product->update([
+                'status' => $request->has('status') && $request->status ? 'active' : 'inactive'
+            ]);
+
+            return redirect()->route('products.index')->with('success', 'Product "' . $product->name . '" has been published successfully!');
+        } catch (\Exception $e) {
+            return back()->withErrors('Publishing failed: ' . $e->getMessage());
+        }        
+    }
 }

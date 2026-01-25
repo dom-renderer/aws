@@ -40,6 +40,7 @@ Route::prefix('admin')->middleware(['auth', 'permission'])->group(function () {
 
     Route::get('/inventory/history/{productId}/{warehouseId}', [\App\Http\Controllers\ProductController::class, 'getHistory']);
     Route::post('/inventory/adjust', [\App\Http\Controllers\ProductController::class, 'adjust'])->name('inventory.adjust');
+    Route::get('search-substitutes', [\App\Http\Controllers\ProductController::class, 'searchSubstitutes'])->name('search-substitutes');
 });
 
 Route::post('state-list', [\App\Helpers\Helper::class, 'getStatesByCountry'])->name('state-list');

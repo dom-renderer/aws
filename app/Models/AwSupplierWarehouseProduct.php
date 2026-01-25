@@ -13,26 +13,26 @@ class AwSupplierWarehouseProduct extends Model
 
     public function supplier()
     {
-        return $this->belongsTo(AwSupplier::class);
+        return $this->belongsTo(User::class, 'supplier_id');
     }
 
     public function warehouse()
     {
-        return $this->belongsTo(AwWarehouse::class);
+        return $this->belongsTo(AwWarehouse::class, 'warehouse_id');
     }
 
     public function product()
     {
-        return $this->belongsTo(AwProduct::class);
+        return $this->belongsTo(AwProduct::class, 'product_id');
     }
 
     public function variant()
     {
-        return $this->belongsTo(AwProductVariant::class);
+        return $this->belongsTo(AwProductVariant::class, 'variant_id');
     }
 
     public function unit()
     {
-        return $this->belongsTo(AwUnit::class);
+        return $this->belongsTo(AwUnit::class, 'unit_id');
     }
 }
