@@ -20,22 +20,40 @@
         
         <div id="attribute-section" class="p-4 bg-light rounded border mb-4">
             <h6 class="fw-bold mb-3 text-uppercase small" style="letter-spacing: 1px;">Define Attributes</h6>
-            <div id="attribute-wrapper">
-                <div class="attribute-row mb-3 d-flex gap-2 align-items-start">
-                    <div class="form-check pt-2">
-                        <input class="form-check-input attr-active" type="checkbox" checked>
-                    </div>
-                    <div style="width: 200px;">
-                        <input name="attr_name[0]" type="text" class="form-control attr-name" placeholder="Attribute (e.g. Color)">
-                    </div>
-                    <div class="flex-grow-1">
-                        <select name="attr_values[0][]" class="form-control select2-tags attr-values" multiple data-placeholder="Add values...">
+                <div id="attribute-wrapper">
+                    @php
+                        // Fetch unique attributes already linked to this product's variants
+                        $existingAttributes = \App\Models\AwAttribute::whereHas('values.variants', function($q) use ($product) {
+                            $q->where('product_id', $product->id);
+                        })->with(['values' => function($q) use ($product) {
+                            $q->whereHas('variants', function($v) use ($product) { $v->where('product_id', $product->id); });
+                        }])->get();
+                    @endphp
 
-                        </select>
-                    </div>
-                    <button type="button" class="btn btn-outline-danger btn-sm remove-attribute"><i class="fa fa-trash"></i></button>
+                    @forelse($existingAttributes as $index => $attr)
+                        <div class="attribute-row mb-3 d-flex gap-2 align-items-start">
+                            <div class="form-check pt-2"><input class="form-check-input attr-active" type="checkbox" checked></div>
+                            <div style="width: 200px;">
+                                <input name="attr_name[{{$index}}]" type="text" class="form-control attr-name" value="{{ $attr->name }}">
+                            </div>
+                            <div class="flex-grow-1">
+                                <select name="attr_values[{{$index}}][]" class="form-control select2-tags attr-values" multiple>
+                                    @foreach($attr->values as $val)
+                                        <option value="{{ $val->value }}" selected>{{ $val->value }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <button type="button" class="btn btn-outline-danger btn-sm remove-attribute"><i class="fa fa-trash"></i></button>
+                        </div>
+                    @empty
+                        <div class="attribute-row mb-3 d-flex gap-2 align-items-start">
+                            <div class="form-check pt-2"><input class="form-check-input attr-active" type="checkbox" checked></div>
+                            <div style="width: 200px;"><input name="attr_name[0]" type="text" class="form-control attr-name" placeholder="Attribute (e.g. Color)"></div>
+                            <div class="flex-grow-1"><select name="attr_values[0][]" class="form-control select2-tags attr-values" multiple></select></div>
+                            <button type="button" class="btn btn-outline-danger btn-sm remove-attribute"><i class="fa fa-trash"></i></button>
+                        </div>
+                    @endforelse
                 </div>
-            </div>
             
             <div class="mt-3">
                 <button type="button" class="btn btn-outline-primary btn-sm" id="add-attribute">
@@ -62,6 +80,43 @@
                         </tr>
                     </thead>
                     <tbody id="variant-tbody">
+                        @foreach($product->variants as $i => $variant)
+                            @php
+                                $primaryImg = $variant->images->where('position', 0)->first();
+                                $secondaryImgs = $variant->images->where('position', '!=', 0)->pluck('image_path')->toArray();
+                                $attrData = $variant->attributes->mapWithKeys(function($item) {
+                                    return [$item->attribute->name => $item->value];
+                                })->toArray();
+                            @endphp
+                            <tr class="variant-row" data-index="{{ $i }}">
+                                <td>
+                                    <div class="text-center">
+                                        @foreach($attrData as $key => $val)
+                                            <input type="hidden" name="variants[{{$i}}][attr_data][{{$key}}]" value="{{$val}}">
+                                        @endforeach
+                                        <img src="{{ $primaryImg ? asset('storage/'.$primaryImg->image_path) : asset('assets/img/placeholder.png') }}" class="img-thumbnail variant-preview-img" style="width:45px; height:45px; object-fit:cover;">
+                                        <br>
+                                        <button type="button" class="btn btn-link btn-sm p-0 open-image-manager" style="font-size:11px">Manage</button>
+                                        <input type="hidden" name="variants[{{$i}}][image_data]" class="variant-image-data" 
+                                            value="{{ json_encode(['primary' => $primaryImg ? asset('storage/'.$primaryImg->image_path) : null, 'secondary' => array_map(fn($p) => asset('storage/'.$p), $secondaryImgs)]) }}">
+                                    </div>
+                                </td>
+                                <td><input type="text" name="variants[{{$i}}][name]" class="form-control form-control-sm" value="{{ $variant->name }}"></td>
+                                <td><input type="text" name="variants[{{$i}}][sku]" class="form-control form-control-sm" value="{{ $variant->sku }}"></td>
+                                <td><input type="text" name="variants[{{$i}}][barcode]" class="form-control form-control-sm" value="{{ $variant->barcode }}"></td>
+                                <td>
+                                    @foreach($attrData as $val)
+                                        <span class="badge bg-soft-dark text-dark border me-1">{{ $val }}</span>
+                                    @endforeach
+                                </td>
+                                <td>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input variant-toggle" type="checkbox" name="variants[{{$i}}][status]" {{ $variant->status == 'active' ? 'checked' : '' }}>
+                                    </div>
+                                </td>
+                                <td><button type="button" class="btn btn-link text-danger p-0 delete-row"><i class="fa fa-trash"></i></button></td>
+                            </tr>
+                        @endforeach
                     </tbody>
                 </table>
             </div>
@@ -357,6 +412,11 @@ $(document).ready(function() {
 
         $('#variantImageModal').modal('hide');
     });
+
+    if ($('#variant-tbody tr').length > 0) {
+        $('#variants-table-container').removeClass('d-none');
+        $('#variant-count-badge').text($('#variant-tbody tr').length + ' Variants Loaded');
+    }
 });
 </script>
 @endpush

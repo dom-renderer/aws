@@ -178,7 +178,7 @@ class VariableProductController extends Controller
             'variants.*.name' => 'required|string',
             'variants.*.barcode' => 'nullable|string',
             'variants.*.image_data' => 'nullable|string',
-            'variants.*.attr_data' => 'nullable|array'
+                'variants.*.attr_data' => 'nullable|array'
         ]);
 
         DB::beginTransaction();
@@ -190,14 +190,10 @@ class VariableProductController extends Controller
                 foreach ($request->attr_name as $index => $thisAttr) {
                     $attrName = $request->attr_name[$index] ?? null;
                     $attrValues = $request->attr_values[$index] ?? [];
-
                     if ($attrName) {
                         $attribute = AwAttribute::firstOrCreate(['name' => $attrName]);
-
                         foreach ($attrValues as $value) {
-                            AwAttributeValue::firstOrCreate(
-                                ['attribute_id' => $attribute->id, 'value' => $value]
-                            );
+                            AwAttributeValue::firstOrCreate(['attribute_id' => $attribute->id, 'value' => $value]);
                         }
                     }
                 }
@@ -212,41 +208,51 @@ class VariableProductController extends Controller
                         'status' => isset($vData['status']) && $vData['status'] == 'on' ? 'active' : 'inactive',
                     ]
                 );
-
                 $keptVariantIds[] = $variant->id;
 
                 if (!empty($vData['attr_data'])) {
-                    $pivotData = [];
+                    $valueIds = [];
                     foreach ($vData['attr_data'] as $aName => $aValue) {
                         $valRecord = AwAttributeValue::where('value', $aValue)
-                            ->whereHas('attribute', function($q) use ($aName) {
-                                $q->where('name', $aName);
-                            })->first();
-
-                        if ($valRecord) {
-                            $pivotData[] = $valRecord->id;
-                        }
+                            ->whereHas('attribute', function($q) use ($aName) { $q->where('name', $aName); })
+                            ->first();
+                        if ($valRecord) $valueIds[] = $valRecord->id;
                     }
                     
                     DB::table('aw_variant_attribute_values')->where('variant_id', $variant->id)->delete();
-                    foreach ($pivotData as $valueId) {
+                    foreach ($valueIds as $vId) {
                         DB::table('aw_variant_attribute_values')->insert([
-                            'variant_id' => $variant->id,
-                            'attribute_value_id' => $valueId,
-                            'created_at' => now(),
-                            'updated_at' => now()
+                            'variant_id' => $variant->id, 'attribute_value_id' => $vId,
+                            'created_at' => now(), 'updated_at' => now()
                         ]);
                     }
                 }
 
                 if (!empty($vData['image_data'])) {
                     $images = json_decode($vData['image_data'], true);
-                    if (isset($images['primary']) && str_starts_with($images['primary'], 'data:image')) {
+                    
+                    if (!empty($images['primary']) && str_starts_with($images['primary'], 'data:image')) {
                         $path = self::uploadBase64($images['primary'], "products/variants/{$variant->sku}/primary");
                         AwProductImage::updateOrCreate(
                             ['variant_id' => $variant->id, 'position' => 0],
-                            ['image_path' => $path, 'product_id' => $variant->product_id]
+                            ['image_path' => $path, 'product_id' => $product->id, 'position' => 0]
                         );
+                    }
+
+                    if (!empty($images['secondary']) && is_array($images['secondary'])) {
+                        AwProductImage::where('variant_id', $variant->id)->where('position', '!=', 0)->delete();
+
+                        foreach ($images['secondary'] as $idx => $base64) {
+                            if (str_starts_with($base64, 'data:image')) {
+                                $secPath = self::uploadBase64($base64, "products/variants/{$variant->sku}/sec-{$idx}");
+                                AwProductImage::create([
+                                    'product_id' => $product->id,
+                                    'variant_id' => $variant->id,
+                                    'image_path' => $secPath,
+                                    'position' => $idx + 1
+                                ]);
+                            }
+                        }
                     }
                 }
             }
@@ -254,15 +260,10 @@ class VariableProductController extends Controller
             AwProductVariant::where('product_id', $id)->whereNotIn('id', $keptVariantIds)->delete();
             DB::commit();
 
-            return redirect()->route('product-management', [
-                'type' => encrypt($type), 
-                'step' => encrypt(3), 
-                'id' => encrypt($id)
-            ]);
-
+            return redirect()->route('product-management', ['type' => encrypt($type), 'step' => encrypt(3), 'id' => encrypt($id)]);
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withErrors('Variant Error: ' . $e->getMessage() . ' ' . $e->getLine())->withInput();
+            return back()->withErrors('Variant Error: ' . $e->getMessage())->withInput();
         }
     }
     protected static function uploadBase64($base64Data, $fileName)

@@ -13,6 +13,6 @@ class AwAttribute extends Model
 
     public function values()
     {
-        return $this->hasMany(AwAttributeValue::class);
+        return $this->hasMany(AwAttributeValue::class, 'attribute_id');
     }
 }
