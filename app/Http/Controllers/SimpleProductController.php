@@ -56,7 +56,7 @@ class SimpleProductController extends Controller
                 return self::units($request, $step, $id, $product, $type = 'simple');
             case 3: // pricing units wise (tier or non-tier pricing)
                 return self::pricing($request, $step, $id, $product, $type = 'simple');
-            case 4: // supplier mapping
+            case 4: // supplier, inventory & stock management
                 return self::supplier($request, $step, $id, $product, $type = 'simple');
             case 5: // categories & seo content
                 return self::categories($request, $step, $id, $product, $type = 'simple');
