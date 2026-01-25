@@ -26,12 +26,23 @@ class SimpleProductController extends Controller
             $q->where('slug', 'supplier');
         })->get();
         $existingInventory = $product->supplierWarehouseProducts;
-        $allCategories = AwCategory::whereNull('parent_id')->with('children')->get();
-        $currentPrimaryId = AwProductCategory::where('product_id', $product->id)->where('is_primary', 1)->value('category_id');
-        $allCategoriesAddtionalList = AwCategory::where('id', '!=', $currentPrimaryId)->toBase()->get();
-        $currentAdditionalIds = AwProductCategory::where('product_id', $product->id)->where('is_primary', 0)->pluck('category_id')->toArray();
 
-        return view("products/{$type}/step-{$step}", compact('product', 'step', 'type', 'brands', 'productTagIds', 'allTags', 'mainImage', 'gallery', 'units', 'baseProductUnit', 'additionalUnits', 'allUnits', 'warehouses', 'suppliers', 'existingInventory', 'allCategories', 'currentPrimaryId', 'currentAdditionalIds', 'allCategoriesAddtionalList'));
+        $categories = AwCategory::buildCategoryTree();
+        $additionalCategories = AwCategory::where('status', 1)->orderBy('name')->get();
+        $selectedPrimaryCategory = null;
+        $selectedAdditionalCategories = [];
+
+        $primaryCategory = AwProductCategory::where('product_id', $product->id)
+            ->where('is_primary', 1)
+            ->first();
+
+        $selectedPrimaryCategory = $primaryCategory ? $primaryCategory->category_id : null;
+        $selectedAdditionalCategories = AwProductCategory::where('product_id', $product->id)
+            ->where('is_primary', 0)
+            ->pluck('category_id')
+            ->toArray();
+
+        return view("products/{$type}/step-{$step}", compact('product', 'step', 'type', 'brands', 'productTagIds', 'allTags', 'mainImage', 'gallery', 'units', 'baseProductUnit', 'additionalUnits', 'allUnits', 'warehouses', 'suppliers', 'existingInventory', 'categories', 'additionalCategories', 'selectedPrimaryCategory', 'selectedAdditionalCategories'));
     }
 
     public static function store(Request $request, $step, $id, $type = 'simple')
@@ -322,47 +333,64 @@ class SimpleProductController extends Controller
     private static function categories(Request $request, $step, $id, $product, $type = 'simple')
     {
         $request->validate([
-            'primary_category_id' => 'required|exists:aw_categories,id',
-            'additional_categories' => 'nullable|array',
+            'primary_category' => 'required|exists:aw_categories,id',
+            'additional_categories' => 'array',
             'additional_categories.*' => 'exists:aw_categories,id',
-            'meta_title' => 'nullable|string|max:255',
-            'meta_description' => 'nullable|string|max:500',
+            'seo_title' => 'nullable|string|max:60',
+            'seo_description' => 'nullable|string|max:160',
         ]);
 
         DB::beginTransaction();
         try {
-            $product = AwProduct::findOrFail($id);
-            
+
             $product->update([
-                'meta_title' => $request->meta_title,
-                'meta_content' => $request->meta_description,
+                'meta_title' => $request->input('seo_title'),
+                'meta_description' => $request->input('seo_description')
             ]);
 
-            $categoriesToSync = [];
+            AwProductCategory::updateOrCreate([
+                'product_id' => $product->id,
+                'is_primary' => 1,
+            ], [
+                'category_id' => $request->input('primary_category') ?? 1,
+            ]);
 
-            $categoriesToSync[$request->primary_category_id] = ['is_primary' => 1];
+            $toBeKept = [];
 
             if ($request->has('additional_categories')) {
-                foreach ($request->additional_categories as $catId) {
-                    if ($catId != $request->primary_category_id) {
-                        $categoriesToSync[$catId] = ['is_primary' => 0];
-                    }
+                $additionalCategories = array_diff(
+                    $request->input('additional_categories'),
+                    [$request->input('primary_category')]
+                );
+
+                foreach ($additionalCategories as $categoryId) {
+                    $toBeKept[] = AwProductCategory::updateOrCreate([
+                        'product_id' => $product->id,
+                        'category_id' => $categoryId,
+                        'is_primary' => 0,
+                    ])->id;
                 }
             }
 
-            $product->categories()->sync($categoriesToSync);
+            if (!empty($toBeKept)) {
+                AwProductCategory::where('product_id', $product->id)
+                    ->where('is_primary', 0)
+                    ->whereNotIn('id', $toBeKept)
+                    ->delete();
+            } else {
+                AwProductCategory::where('product_id', $product->id)
+                    ->where('is_primary', 0)
+                    ->delete();
+            }
 
             DB::commit();
-            
-            return redirect()->route('product-management', [
-                'type' => encrypt($type), 
-                'step' => encrypt(6), 
-                'id' => encrypt($id)
-            ]);
 
+            return redirect()->route('product-management', ['type' => encrypt($type), 'step' => encrypt(6), 'id' => encrypt($product->id)])
+                ->with('success', 'Data saved successfully');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withErrors('Categorization Error: ' . $e->getMessage());
+
+            return back()->withErrors('Category Management Failed: ' . $e->getMessage());
         }
     }
 
