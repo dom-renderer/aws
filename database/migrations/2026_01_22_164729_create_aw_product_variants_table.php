@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('aw_product_variants', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('product_id')->constrained()->cascadeOnDelete();
+            $table->unsignedBigInteger('product_id');
+            $table->string('name')->nullable();
             $table->string('sku', 100)->unique();
             $table->string('barcode', 100)->nullable();
             $table->enum('status', ['active', 'inactive'])->default('active')->index();

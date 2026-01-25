@@ -44,7 +44,7 @@ $(document).ready(function () {
             { data: 'DT_RowIndex', orderable: false, searchable: false },
             { data: 'name' },
             { data: 'sku' },
-            { data: 'type' },
+            { data: 'product_type' },
             { data: 'category_name' },
             { data: 'status_badge', orderable: false, searchable: false },
             { data: 'stock_badge', orderable: false, searchable: false },

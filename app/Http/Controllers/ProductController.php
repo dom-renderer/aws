@@ -46,6 +46,16 @@ class ProductController extends Controller
 
             return $html;
         })
+        ->addColumn('category_name', function ($row) {
+            $categories = $row->categories->pluck('name')->toArray();
+            return implode(', ', $categories);
+        })
+        ->addColumn('status_badge', function ($row) {
+            return $row->status ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
+        })
+        ->addColumn('stock_badge', function ($row) {
+            return $row->in_stock ? '<span class="badge bg-info">In stock</span>' : '<span class="badge bg-warning">Out of stock</span>';
+        })
         ->editColumn('product_type', function ($row) {
             if ($row->product_type == 'simple') {
                 return "Simple";
@@ -57,7 +67,7 @@ class ProductController extends Controller
                 return "Unknown";
             }
         })
-        ->rawColumns(['action', 'product_type'])
+        ->rawColumns(['action', 'product_type', 'status_badge', 'stock_badge'])
         ->addIndexColumn()
         ->toJson();
     }

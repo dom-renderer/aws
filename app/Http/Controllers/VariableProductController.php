@@ -2,19 +2,47 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{User, AwProduct, AwProductVariant, AwWarehouse, AwBrand, AwCategory, AwTag, AwProductTag, AwProductUnit, AwSupplierWarehouseProduct, AwInventoryMovement, AwProductImage, AwUnit, AwPrice, AwPriceTier, AwProductCategory};
-use Illuminate\Support\Facades\{Log, DB};
+use App\Models\{User, AwProduct, AwAttribute, AwAttributeValue, AwVariantAttributeValue, AwProductVariant, AwWarehouse, AwBrand, AwCategory, AwTag, AwProductTag, AwProductUnit, AwSupplierWarehouseProduct, AwInventoryMovement, AwProductImage, AwUnit, AwPrice, AwPriceTier, AwProductCategory};
+use Illuminate\Support\Facades\{Storage, Log, DB};
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class VariableProductController extends Controller
 {
-        public static function view($product, $step, $type) {   
-        $product = AwProduct::findOrFail($product->id);
+        public static function view($product, $step, $type) {
 
-        return view("products/{$type}/step-{$step}", compact(
-            'product'
-        ));
+        $product = AwProduct::findOrFail($product->id);
+        $brands = AwBrand::active()->get();
+        $units = AwUnit::get();
+        $allTags = AwTag::get();
+        $productTagIds = $product->tags->pluck('id')->toArray();
+        $mainImage = $product->images->where('position', 0)->first();
+        $gallery = $product->images->where('position', '>', 0)->sortBy('position');
+        $baseProductUnit = $product->units->where('is_base', 1)->first();
+        $additionalUnits = $product->units->where('is_base', 0)->sortBy('conversion_factor')->values();
+        $allUnits = $product->units->sortByDesc('is_base');
+        $warehouses = AwWarehouse::all();
+        $suppliers = User::whereHas('roles', function ($q) {
+            $q->where('slug', 'supplier');
+        })->get();
+        $existingInventory = $product->supplierWarehouseProducts;
+
+        $categories = AwCategory::buildCategoryTree();
+        $additionalCategories = AwCategory::where('status', 1)->orderBy('name')->get();
+        $selectedPrimaryCategory = null;
+        $selectedAdditionalCategories = [];
+
+        $primaryCategory = AwProductCategory::where('product_id', $product->id)
+            ->where('is_primary', 1)
+            ->first();
+
+        $selectedPrimaryCategory = $primaryCategory ? $primaryCategory->category_id : null;
+        $selectedAdditionalCategories = AwProductCategory::where('product_id', $product->id)
+            ->where('is_primary', 0)
+            ->pluck('category_id')
+            ->toArray();
+
+        return view("products/{$type}/step-{$step}", compact('product', 'step', 'type', 'brands', 'productTagIds', 'allTags', 'mainImage', 'gallery', 'units', 'baseProductUnit', 'additionalUnits', 'allUnits', 'warehouses', 'suppliers', 'existingInventory', 'categories', 'additionalCategories', 'selectedPrimaryCategory', 'selectedAdditionalCategories'));
     }
 
     public static function store(Request $request, $step, $id, $type = 'variable')
@@ -45,7 +73,7 @@ class VariableProductController extends Controller
     }
 
     protected static function basic(Request $request, $step, $id, $product, $type)
-{
+    {
         $request->validate([
             'name' => 'required|string|max:255|unique:aw_products,name,' . $id,
             'brand_id' => 'required|exists:aw_brands,id',
@@ -144,7 +172,110 @@ class VariableProductController extends Controller
 
     protected static function variants(Request $request, $step, $id, $product, $type)
     {
+        $request->validate([
+            'variants' => 'required|array|min:1',
+            'variants.*.sku' => 'required|string',
+            'variants.*.name' => 'required|string',
+            'variants.*.barcode' => 'nullable|string',
+            'variants.*.image_data' => 'nullable|string',
+            'variants.*.attr_data' => 'nullable|array'
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $product = AwProduct::findOrFail($id);
+            $keptVariantIds = [];
+
+            if (!empty($request->attr_name) && is_iterable($request->attr_name)) {
+                foreach ($request->attr_name as $index => $thisAttr) {
+                    $attrName = $request->attr_name[$index] ?? null;
+                    $attrValues = $request->attr_values[$index] ?? [];
+
+                    if ($attrName) {
+                        $attribute = AwAttribute::firstOrCreate(['name' => $attrName]);
+
+                        foreach ($attrValues as $value) {
+                            AwAttributeValue::firstOrCreate(
+                                ['attribute_id' => $attribute->id, 'value' => $value]
+                            );
+                        }
+                    }
+                }
+            }
+
+            foreach ($request->variants as $vData) {
+                $variant = AwProductVariant::updateOrCreate(
+                    ['product_id' => $id, 'sku' => $vData['sku']],
+                    [
+                        'name' => $vData['name'],
+                        'barcode' => $vData['barcode'] ?? null,
+                        'status' => isset($vData['status']) && $vData['status'] == 'on' ? 'active' : 'inactive',
+                    ]
+                );
+
+                $keptVariantIds[] = $variant->id;
+
+                if (!empty($vData['attr_data'])) {
+                    $pivotData = [];
+                    foreach ($vData['attr_data'] as $aName => $aValue) {
+                        $valRecord = AwAttributeValue::where('value', $aValue)
+                            ->whereHas('attribute', function($q) use ($aName) {
+                                $q->where('name', $aName);
+                            })->first();
+
+                        if ($valRecord) {
+                            $pivotData[] = $valRecord->id;
+                        }
+                    }
+                    
+                    DB::table('aw_variant_attribute_values')->where('variant_id', $variant->id)->delete();
+                    foreach ($pivotData as $valueId) {
+                        DB::table('aw_variant_attribute_values')->insert([
+                            'variant_id' => $variant->id,
+                            'attribute_value_id' => $valueId,
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ]);
+                    }
+                }
+
+                if (!empty($vData['image_data'])) {
+                    $images = json_decode($vData['image_data'], true);
+                    if (isset($images['primary']) && str_starts_with($images['primary'], 'data:image')) {
+                        $path = self::uploadBase64($images['primary'], "products/variants/{$variant->sku}/primary");
+                        AwProductImage::updateOrCreate(
+                            ['variant_id' => $variant->id, 'position' => 0],
+                            ['image_path' => $path, 'product_id' => $variant->product_id]
+                        );
+                    }
+                }
+            }
+
+            AwProductVariant::where('product_id', $id)->whereNotIn('id', $keptVariantIds)->delete();
+            DB::commit();
+
+            return redirect()->route('product-management', [
+                'type' => encrypt($type), 
+                'step' => encrypt(3), 
+                'id' => encrypt($id)
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors('Variant Error: ' . $e->getMessage() . ' ' . $e->getLine())->withInput();
+        }
+    }
+    protected static function uploadBase64($base64Data, $fileName)
+    {
+        $extension = explode('/', explode(':', substr($base64Data, 0, strpos($base64Data, ';')))[1])[1];
+        $replace = substr($base64Data, 0, strpos($base64Data, ',') + 1);
+        $image = str_replace($replace, '', $base64Data);
+        $image = str_replace(' ', '+', $image);
         
+        $fullFileName = $fileName . '_' . time() . '.' . $extension;
+        Storage::disk('public')->put($fullFileName, base64_decode($image));
+        
+        return $fullFileName;
     }
 
     protected static function units(Request $request, $step, $id, $product, $type)
