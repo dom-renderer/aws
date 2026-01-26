@@ -13,8 +13,10 @@ return new class extends Migration
     {
         Schema::create('aw_product_substitutes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('product_id')->constrained('aw_products')->onDelete('cascade');
-            $table->foreignId('substitute_id')->constrained('aw_products')->onDelete('cascade');
+            $table->unsignedBigInteger('product_id')->nullable();
+            $table->unsignedBigInteger('variant_id')->nullable();
+            $table->unsignedBigInteger('substitute_id')->nullable();
+            $table->unsignedBigInteger('variant_substitute_id')->nullable();
             $table->integer('position')->default(0);
             $table->softDeletes();
             $table->timestamps();

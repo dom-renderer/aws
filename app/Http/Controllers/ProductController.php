@@ -219,7 +219,7 @@ class ProductController extends Controller
             return [
                 'id' => $product->id,
                 'name' => $product->name,
-                'sku' => $product->variants->first()?->sku ?? 'N/A',
+                'sku' => $product->sku,
                 'brand_name' => $product->brand?->name ?? 'No Brand',
                 'image_path' => $product->images->where('position', 0)->first()?->image_path 
                                 ? asset('storage/' . $product->images->where('position', 0)->first()->image_path)

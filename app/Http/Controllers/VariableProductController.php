@@ -490,15 +490,93 @@ class VariableProductController extends Controller
         }
     }
 
-    protected static function categories(Request $request, $step, $id, $product, $type)
+    private static function categories(Request $request, $step, $id, $product, $type = 'simple')
     {
+        $request->validate([
+            'primary_category' => 'required|exists:aw_categories,id',
+            'additional_categories' => 'array',
+            'additional_categories.*' => 'exists:aw_categories,id',
+            'seo_title' => 'nullable|string|max:60',
+            'seo_description' => 'nullable|string|max:160',
+        ]);
+
+        DB::beginTransaction();
+        try {
+
+            $product->update([
+                'meta_title' => $request->input('seo_title'),
+                'meta_description' => $request->input('seo_description')
+            ]);
+
+            AwProductCategory::updateOrCreate([
+                'product_id' => $product->id,
+                'is_primary' => 1,
+            ], [
+                'category_id' => $request->input('primary_category') ?? 1,
+            ]);
+
+            $toBeKept = [];
+
+            if ($request->has('additional_categories')) {
+                $additionalCategories = array_diff(
+                    $request->input('additional_categories'),
+                    [$request->input('primary_category')]
+                );
+
+                foreach ($additionalCategories as $categoryId) {
+                    $toBeKept[] = AwProductCategory::updateOrCreate([
+                        'product_id' => $product->id,
+                        'category_id' => $categoryId,
+                        'is_primary' => 0,
+                    ])->id;
+                }
+            }
+
+            if (!empty($toBeKept)) {
+                AwProductCategory::where('product_id', $product->id)
+                    ->where('is_primary', 0)
+                    ->whereNotIn('id', $toBeKept)
+                    ->delete();
+            } else {
+                AwProductCategory::where('product_id', $product->id)
+                    ->where('is_primary', 0)
+                    ->delete();
+            }
+
+            DB::commit();
+
+            return redirect()->route('product-management', ['type' => encrypt($type), 'step' => encrypt(7), 'id' => encrypt($product->id)])
+                ->with('success', 'Data saved successfully');
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return back()->withErrors('Category Management Failed: ' . $e->getMessage());
+        }
     }
 
-    protected static function substitutes(Request $request, $step, $id, $product, $type)
+    private static function substitutes(Request $request, $step, $id, $product, $type = 'simple')
     {
+        $request->validate([
+            'substitutes' => 'nullable|array',
+            'substitutes.*' => 'exists:aw_products,id'
+        ]);
+
+        try {
+            $product = AwProduct::findOrFail($id);
+            $product->substitutes()->sync($request->substitutes ?? []);
+
+            return redirect()->route('product-management', [
+                'type' => encrypt($type), 
+                'step' => encrypt(8),
+                'id' => encrypt($id)
+            ]);
+        } catch (\Exception $e) {
+            return back()->withErrors('Error linking substitutes: ' . $e->getMessage());
+        }
     }
 
     protected static function review(Request $request, $step, $id, $product, $type)
     {
+        
     }
 }
