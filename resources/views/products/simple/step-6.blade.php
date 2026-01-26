@@ -66,8 +66,9 @@ $(document).ready(function() {
                 return {
                     results: data.map(item => ({
                         id: item.id,
-                        text: `${item.name} (${item.sku ?? 'No SKU'})`,
+                        text: item.name,
                         image: item.image_path,
+                        sku: item.sku,
                         brand: item.brand_name
                     }))
                 };
@@ -79,14 +80,14 @@ $(document).ready(function() {
 
     function formatProduct(product) {
         if (product.loading) return product.text;
-
+        
         return $(`
             <div class="d-flex align-items-center">
                 <img src="${product.image}" class="rounded me-2" style="width: 35px; height: 35px; object-fit: cover;">
                 <div>
-                    <div class="fw-bold small">${product.name}</div>
+                    <div class="fw-bold small">${product.text}</div>
                     <div class="text-muted" style="font-size: 0.75rem;">
-                        SKU: ${product.sku} | Brand: ${product.brand_name}
+                        SKU: ${product.sku} | Brand: ${product.brand}
                     </div>
                 </div>
             </div>

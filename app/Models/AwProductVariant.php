@@ -13,7 +13,7 @@ class AwProductVariant extends Model
 
     public function product()
     {
-        return $this->belongsTo(AwProduct::class);
+        return $this->belongsTo(AwProduct::class, 'product_id');
     }
 
     public function images()
@@ -29,6 +29,16 @@ class AwProductVariant extends Model
             'variant_id',
             'attribute_value_id'
         );
+    }
+
+    public function supplierWarehouseProducts()
+    {
+        return $this->hasMany(AwSupplierWarehouseProduct::class, 'variant_id');
+    }
+
+    public function inventoryMovements()
+    {
+        return $this->hasMany(AwInventoryMovement::class, 'variant_id');
     }
 
     public function units()
