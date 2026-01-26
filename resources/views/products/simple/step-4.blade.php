@@ -112,13 +112,13 @@
     <div class="modal fade" id="historyModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Inventory Movement History</h5>
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold"><i class="fa fa-history me-2"></i>Inventory Movement History</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <table class="table table-sm">
-                        <thead>
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
                             <tr>
                                 <th>Date</th>
                                 <th>Reason</th>

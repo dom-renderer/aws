@@ -149,6 +149,9 @@ class ProductController extends Controller
     {
         $history = AwInventoryMovement::where('product_id', $productId)
             ->where('warehouse_id', $warehouseId)
+            ->when(request()->has('variant_id'), function ($builder) {
+                $builder->where('variant_id', request('variant_id'));
+            })
             ->orderBy('created_at', 'desc')
             ->take(10)
             ->get();

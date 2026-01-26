@@ -412,6 +412,82 @@ class VariableProductController extends Controller
 
     protected static function supplier(Request $request, $step, $id, $product, $type)
     {
+        $request->validate([
+            'variant_inventory' => 'required|array',
+            'variant_inventory.*.*.supplier_id' => 'required|exists:users,id',
+            'variant_inventory.*.*.warehouse_id' => 'required|exists:aw_warehouses,id',
+            'variant_inventory.*.*.unit_id' => 'required|exists:aw_units,id',
+            'variant_inventory.*.*.quantity' => 'required|integer|min:0',
+            'variant_inventory.*.*.cost_price' => 'required|numeric|min:0',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $product = AwProduct::findOrFail($id);
+            $keptMappingIds = [];
+
+            foreach ($request->variant_inventory as $variantId => $inventoryItems) {
+                foreach ($inventoryItems as $item) {
+
+                    $existingRecord = AwSupplierWarehouseProduct::where([
+                        'product_id' => $id,
+                        'variant_id' => $variantId,
+                        'supplier_id' => $item['supplier_id'],
+                        'warehouse_id' => $item['warehouse_id'],
+                        'unit_id' => $item['unit_id']
+                    ])->first();
+
+                    $newQty = (int)$item['quantity'];
+                    $oldQty = $existingRecord ? (int)$existingRecord->quantity : 0;
+                    $difference = $newQty - $oldQty;
+
+                    $mapping = AwSupplierWarehouseProduct::updateOrCreate(
+                        [
+                            'product_id' => $id,
+                            'variant_id' => $variantId,
+                            'supplier_id' => $item['supplier_id'],
+                            'warehouse_id' => $item['warehouse_id'],
+                            'unit_id' => $item['unit_id']
+                        ],
+                        [
+                            'quantity' => $newQty,
+                            'cost_price' => $item['cost_price'],
+                            'reorder_level' => $item['reorder_level'] ?? 0,
+                            'max_stock' => $item['max_stock'] ?? 0,
+                            'notes' => $item['notes'] ?? null
+                        ]
+                    );
+
+                    if ($difference !== 0) {
+                        AwInventoryMovement::create([
+                            'product_id' => $id,
+                            'variant_id' => $variantId,
+                            'unit_id' => $item['unit_id'],
+                            'warehouse_id' => $item['warehouse_id'],
+                            'quantity_change' => $difference,
+                            'reason' => $existingRecord ? 'adjustment' : 'purchase',
+                            'reference' => $existingRecord ? 'Manual Quantity Update' : 'Initial Stock Entry',
+                        ]);
+                    }
+                    $keptMappingIds[] = $mapping->id;
+                }
+            }
+
+            AwSupplierWarehouseProduct::where('product_id', $id)
+                ->whereNotIn('id', $keptMappingIds)
+                ->delete();
+
+            DB::commit();
+            
+            return redirect()->route('product-management', [
+                'type' => encrypt($type), 
+                'step' => encrypt(6), 
+                'id' => encrypt($id)
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors('Inventory Sync Failed: ' . $e->getMessage())->withInput();
+        }
     }
 
     protected static function categories(Request $request, $step, $id, $product, $type)
