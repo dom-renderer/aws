@@ -281,10 +281,133 @@ class VariableProductController extends Controller
 
     protected static function units(Request $request, $step, $id, $product, $type)
     {
+        $request->validate([
+            'variant_units' => 'required|array',
+            'variant_units.*.base_unit_id' => 'required|exists:aw_units,id',
+            'variant_units.*.default_selling_unit' => 'required',
+            'variant_units.*.units' => 'nullable|array',
+            'variant_units.*.units.*.unit_id' => 'required|exists:aw_units,id',
+            'variant_units.*.units.*.quantity' => 'required|numeric|min:0.0001',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $product = AwProduct::findOrFail($id);
+            $keptUnitIds = [];
+
+            foreach ($request->variant_units as $variantId => $data) {
+                
+                $baseUnit = AwProductUnit::updateOrCreate(
+                    [
+                        'product_id' => $id, 
+                        'variant_id' => $variantId, 
+                        'is_base' => 1
+                    ],
+                    [
+                        'unit_id' => $data['base_unit_id'],
+                        'parent_unit_id' => null,
+                        'conversion_factor' => 1.0000,
+                        'is_default_selling' => ($data['default_selling_unit'] == 'base') ? 1 : 0
+                    ]
+                );
+                $keptUnitIds[] = $baseUnit->id;
+
+                if (isset($data['units']) && is_array($data['units'])) {
+                    $prevParentId = $data['base_unit_id'];
+                    $runningFactor = 1.0000;
+
+                    foreach ($data['units'] as $index => $u) {
+                        $runningFactor = $runningFactor * $u['quantity'];
+                        
+                        $unitRecord = AwProductUnit::updateOrCreate(
+                            [
+                                'product_id' => $id, 
+                                'variant_id' => $variantId, 
+                                'unit_id' => $u['unit_id']
+                            ],
+                            [
+                                'parent_unit_id' => $prevParentId,
+                                'conversion_factor' => $runningFactor,
+                                'is_base' => 0,
+                                'is_default_selling' => ($data['default_selling_unit'] == $index) ? 1 : 0
+                            ]
+                        );
+
+                        $keptUnitIds[] = $unitRecord->id;
+                        
+                        $prevParentId = $u['unit_id'];
+                    }
+                }
+            }
+
+            AwProductUnit::where('product_id', $id)
+                ->whereNotIn('id', $keptUnitIds)
+                ->delete();
+
+            DB::commit();
+
+            return redirect()->route('product-management', [
+                'type' => encrypt($type), 
+                'step' => encrypt(4), 
+                'id' => encrypt($id)
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors('Sync error: ' . $e->getMessage() . ' at line ' . $e->getLine())->withInput();
+        }
     }
 
     protected static function pricing(Request $request, $step, $id, $product, $type)
     {
+        $request->validate([
+            'variant_pricing' => 'required|array',
+            'variant_pricing.*.*.pricing_type' => 'required|in:fixed,tiered',
+            'variant_pricing.*.*.base_price' => 'required|numeric|min:0',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            foreach ($request->variant_pricing as $variantId => $units) {
+                foreach ($units as $unitId => $data) {
+                    
+                    $priceRecord = AwPrice::updateOrCreate(
+                        ['product_id' => $id, 'variant_id' => $variantId, 'unit_id' => $unitId],
+                        [
+                            'pricing_type' => $data['pricing_type'],
+                            'base_price' => $data['base_price']
+                        ]
+                    );
+
+                    if ($data['pricing_type'] === 'tiered' && isset($data['tiers'])) {
+                        $activeTierIds = [];
+                        foreach ($data['tiers'] as $tier) {
+                            $tierEntry = AwPriceTier::updateOrCreate(
+                                ['price_id' => $priceRecord->id, 'min_qty' => $tier['min_qty']],
+                                [
+                                    'max_qty' => $tier['max_qty'],
+                                    'price' => $tier['price']
+                                ]
+                            );
+                            $activeTierIds[] = $tierEntry->id;
+                        }
+
+                        AwPriceTier::where('price_id', $priceRecord->id)
+                            ->whereNotIn('id', $activeTierIds)
+                            ->delete();
+                    } else {
+                        AwPriceTier::where('price_id', $priceRecord->id)->delete();
+                    }
+                }
+            }
+            
+            DB::commit();
+            return redirect()->route('product-management', ['type' => encrypt($type), 'step' => encrypt(5), 'id' => encrypt($id)]);
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors('Pricing Sync Failed: ' . $e->getMessage() . ' at line ' . $e->getLine());
+        }
     }
 
     protected static function supplier(Request $request, $step, $id, $product, $type)

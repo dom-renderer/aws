@@ -10,7 +10,6 @@ class AwPrice extends Model
     use SoftDeletes;
 
     protected $guarded = [];
-    public $timestamps = false;
 
     public function product()
     {
