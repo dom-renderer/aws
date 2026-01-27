@@ -80,9 +80,4 @@ class User extends Authenticatable
     {
         return $this->hasMany(Location::class, 'customer_id');
     }
-
-    public function orders()
-    {
-        return $this->hasMany(Order::class, 'customer_id');
-    }
 }
