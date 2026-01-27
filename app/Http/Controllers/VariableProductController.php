@@ -372,8 +372,9 @@ class VariableProductController extends Controller
                 foreach ($units as $unitId => $data) {
                     
                     $priceRecord = AwPrice::updateOrCreate(
-                        ['product_id' => $id, 'variant_id' => $variantId, 'unit_id' => $unitId],
+                        ['product_id' => $id, 'variant_id' => $variantId, 'original_unit_id' => $data['unit_id']],
                         [
+                            'unit_id' => $unitId,
                             'pricing_type' => $data['pricing_type'],
                             'base_price' => $data['base_price']
                         ]
@@ -577,6 +578,20 @@ class VariableProductController extends Controller
 
     protected static function review(Request $request, $step, $id, $product, $type)
     {
-        
+        try {
+            $product = AwProduct::findOrFail($id);
+            
+            if (!$product->categories()->where('is_primary', 1)->exists()) {
+                return back()->withErrors('Error: You must select a Primary Category in Step 6 before publishing.');
+            }
+
+            $product->update([
+                'status' => $request->has('status') && $request->status ? 'active' : 'inactive'
+            ]);
+
+            return redirect()->route('products.index')->with('success', 'Product "' . $product->name . '" has been published successfully!');
+        } catch (\Exception $e) {
+            return back()->withErrors('Publishing failed: ' . $e->getMessage());
+        }  
     }
 }

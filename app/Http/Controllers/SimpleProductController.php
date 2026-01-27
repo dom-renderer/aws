@@ -232,8 +232,9 @@ class SimpleProductController extends Controller
             foreach ($request->pricing as $unitId => $data) {
 
                 $priceRecord = AwPrice::updateOrCreate(
-                    ['product_id' => $id, 'unit_id' => $unitId],
+                    ['product_id' => $id, 'original_unit_id' => $data['unit_id']],
                     [
+                        'unit_id' => $unitId,
                         'pricing_type' => $data['pricing_type'],
                         'base_price' => $data['base_price']
                     ]

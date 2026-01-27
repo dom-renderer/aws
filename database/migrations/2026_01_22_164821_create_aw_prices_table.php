@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('product_id');
             $table->unsignedBigInteger('variant_id')->nullable();
+            $table->unsignedBigInteger('original_unit_id')->nullable();
             $table->unsignedBigInteger('unit_id');
             $table->enum('pricing_type', ['fixed', 'tiered']);
             $table->decimal('base_price', 12, 2);

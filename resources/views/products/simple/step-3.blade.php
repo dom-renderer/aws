@@ -36,6 +36,7 @@
                     <div class="row g-3 align-items-end mb-4">
                         <div class="col-md-3">
                             <label class="form-label fw-bold">Pricing Method</label>
+                            <input type="hidden" name="pricing[{{ $pUnit->id }}][unit_id]" value="{{ $pUnit->unit_id }}">
                             <select name="pricing[{{ $pUnit->id }}][pricing_type]" class="form-select pricing-type-selector">
                                 <option value="fixed" {{ optional($price)->pricing_type == 'fixed' ? 'selected' : '' }}>Fixed Price</option>
                                 <option value="tiered" {{ optional($price)->pricing_type == 'tiered' ? 'selected' : '' }}>Tiered Pricing</option>

@@ -58,8 +58,9 @@
                                     <div class="row g-3 align-items-end mb-4">
                                         <div class="col-md-4">
                                             <label class="form-label fw-bold small">Pricing Method</label>
+                                            <input type="hidden" name="variant_pricing[{{ $variant->id }}][{{ $pUnit->id }}][unit_id]" value="{{ $pUnit->unit_id }}">
                                             <select
-                                                name="variant_pricing[{{ $variant->id }}][{{ $pUnit->unit_id }}][pricing_type]"
+                                                name="variant_pricing[{{ $variant->id }}][{{ $pUnit->id }}][pricing_type]"
                                                 class="form-select pricing-type-selector">
                                                 <option value="fixed"
                                                     {{ optional($price)->pricing_type == 'fixed' ? 'selected' : '' }}>Fixed
@@ -74,7 +75,7 @@
                                             <div class="input-group">
                                                 <span class="input-group-text">$</span>
                                                 <input type="number"
-                                                    name="variant_pricing[{{ $variant->id }}][{{ $pUnit->unit_id }}][base_price]"
+                                                    name="variant_pricing[{{ $variant->id }}][{{ $pUnit->id }}][base_price]"
                                                     class="form-control base-price-input" step="0.01"
                                                     value="{{ optional($price)->base_price ?? '0.00' }}">
                                             </div>
@@ -103,15 +104,15 @@
                                                     @foreach ($price->tiers as $tIndex => $tier)
                                                         <tr class="tier-row">
                                                             <td><input type="number"
-                                                                    name="variant_pricing[{{ $variant->id }}][{{ $pUnit->unit_id }}][tiers][{{ $tIndex }}][min_qty]"
+                                                                    name="variant_pricing[{{ $variant->id }}][{{ $pUnit->id }}][tiers][{{ $tIndex }}][min_qty]"
                                                                     class="form-control form-control-sm"
                                                                     value="{{ $tier->min_qty }}"></td>
                                                             <td><input type="number"
-                                                                    name="variant_pricing[{{ $variant->id }}][{{ $pUnit->unit_id }}][tiers][{{ $tIndex }}][max_qty]"
+                                                                    name="variant_pricing[{{ $variant->id }}][{{ $pUnit->id }}][tiers][{{ $tIndex }}][max_qty]"
                                                                     class="form-control form-control-sm"
                                                                     value="{{ $tier->max_qty }}" placeholder="∞"></td>
                                                             <td><input type="number"
-                                                                    name="variant_pricing[{{ $variant->id }}][{{ $pUnit->unit_id }}][tiers][{{ $tIndex }}][price]"
+                                                                    name="variant_pricing[{{ $variant->id }}][{{ $pUnit->id }}][tiers][{{ $tIndex }}][price]"
                                                                     class="form-control form-control-sm tier-price-input"
                                                                     step="0.01" value="{{ $tier->price }}"></td>
                                                             <td class="discount-label pt-2 fw-bold text-success small">0%

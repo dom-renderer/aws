@@ -19,7 +19,6 @@
                             <th>Type</th>
                             <th>Category</th>
                             <th>Status</th>
-                            <th>Stock</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -47,7 +46,6 @@ $(document).ready(function () {
             { data: 'product_type' },
             { data: 'category_name' },
             { data: 'status_badge', orderable: false, searchable: false },
-            { data: 'stock_badge', orderable: false, searchable: false },
             { data: 'action', orderable: false, searchable: false }
         ],
     });

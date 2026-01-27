@@ -48,6 +48,6 @@ class AwProductVariant extends Model
 
     public function prices()
     {
-        return $this->hasMany(AwPrice::class, 'variant_id');
+        return $this->hasMany(AwPrice::class, 'variant_id')->where('product_id', $this->product_id)->where('variant_id', $this->variant_id);;
     }
 }

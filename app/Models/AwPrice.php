@@ -23,7 +23,12 @@ class AwPrice extends Model
 
     public function unit()
     {
-        return $this->belongsTo(AwUnit::class, 'unit_id');
+        return $this->belongsTo(AwUnit::class, 'original_unit_id');
+    }
+
+    public function belongs()
+    {
+        return $this->belongsTo(AwProductUnit::class, 'unit_id');
     }
 
     public function tiers()
