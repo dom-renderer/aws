@@ -125,7 +125,7 @@ return [
         'Helper' => \App\Helpers\Helper::class,
 
         //eloquents
-        'Product' => \App\Models\Product::class
+        'AwProduct' => \App\Models\AwProduct::class
     ],
 
     /*

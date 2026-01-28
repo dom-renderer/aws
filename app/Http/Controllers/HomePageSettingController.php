@@ -2,20 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Storage;
 use App\Models\HomePageSetting;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
-use App\Models\Category;
-use App\Models\Product;
+use App\Models\AwCategory;
+use App\Models\AwProduct;
 
 class HomePageSettingController extends Controller
 {
     public function index()
     {
         $settings = HomePageSetting::orderBy('ordering')->get();
-        $products = Product::select('id', 'name')->get();
-        $categories = Category::select('id', 'name')->get();
+        $products = AwProduct::select('id', 'name')->get();
+        $categories = AwCategory::select('id', 'name')->get();
         return view('home-page-settings.index', compact('settings', 'products', 'categories'));
     }
 

@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Category;
+use App\Models\AwCategory as Category;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
@@ -81,7 +81,7 @@ class CategoryController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'parent_id' => 'nullable|exists:categories,id',
+            'parent_id' => 'nullable|exists:aw_categories,id',
             'tags' => 'nullable|array',
             'tags.*' => 'nullable|string|max:100',
             'description' => 'nullable|string',
@@ -153,7 +153,7 @@ class CategoryController extends Controller
         $category = Category::findOrFail(decrypt($id));
         $request->validate([
             'name' => 'required|string|max:255',
-            'parent_id' => 'nullable|exists:categories,id',
+            'parent_id' => 'nullable|exists:aw_categories,id',
             'tags' => 'nullable|array',
             'tags.*' => 'nullable|string|max:100',
             'description' => 'nullable|string',

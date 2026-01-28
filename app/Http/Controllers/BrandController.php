@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Brand;
 use Illuminate\Support\Facades\DB;
+use App\Models\AwBrand as Brand;
+use Illuminate\Http\Request;
 
 class BrandController extends Controller
 {
@@ -84,7 +84,7 @@ class BrandController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:brands,slug',
+            'slug' => 'required|string|max:255|unique:aw_brands,slug',
             'description' => 'nullable|string',
             'logo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'status' => 'nullable|boolean'
@@ -144,7 +144,7 @@ class BrandController extends Controller
         $brand = Brand::findOrFail(decrypt($id));
         $request->validate([
             'name' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:brands,slug,' . $brand->id,
+            'slug' => 'required|string|max:255|unique:aw_brands,slug,' . $brand->id,
             'description' => 'nullable|string',
             'logo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'status' => 'nullable|boolean'

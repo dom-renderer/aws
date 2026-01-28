@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Warehouse;
-use App\Models\Country;
+use App\Models\AwWarehouse as Warehouse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
+use App\Models\Country;
 
 class WarehouseLocationController extends Controller
 {
@@ -94,7 +94,7 @@ class WarehouseLocationController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'code' => 'required|string|max:20|unique:warehouses,code',
+            'code' => 'required|string|max:20|unique:aw_warehouses,code',
             'name' => 'required|string|max:255',
             'address_line_1' => 'required|string|max:255',
             'address_line_2' => 'nullable|string|max:255',
@@ -152,7 +152,7 @@ class WarehouseLocationController extends Controller
     {
         $location = Warehouse::findOrFail(decrypt($id));
         $request->validate([
-            'code' => 'required|string|max:20|unique:warehouses,code,' . $location->id,
+            'code' => 'required|string|max:20|unique:aw_warehouses,code,' . $location->id,
             'name' => 'required|string|max:255',
             'address_line_1' => 'required|string|max:255',
             'address_line_2' => 'nullable|string|max:255',

@@ -21,6 +21,16 @@ class AwProduct extends Model
         return $this->hasMany(AwProductImage::class, 'product_id');
     }
 
+    public function primaryImage()
+    {
+        return $this->hasOne(AwProductImage::class, 'product_id')->where('position', 0);
+    }
+
+    public function secondaryImages()
+    {
+        return $this->hasMany(AwProductImage::class, 'product_id')->where('position', '!=', 0);
+    }
+
     public function units()
     {
         return $this->hasMany(AwProductUnit::class, 'product_id');

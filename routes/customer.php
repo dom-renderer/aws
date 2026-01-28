@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 
 
-Route::middleware(['auth:customer'])->group(function () {    
+Route::middleware(['auth:customer'])->group(function () {
 });
 
 Route::post('state-list', [\App\Helpers\Helper::class, 'getStatesByCountry'])->name('state-list');
