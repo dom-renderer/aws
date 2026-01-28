@@ -27,6 +27,12 @@ Route::prefix('admin')->middleware(['auth', 'permission'])->group(function () {
     Route::any('product-management/{type?}/{step?}/{id?}', [\App\Http\Controllers\ProductController::class, 'steps'])->name('product-management');
     Route::match(['GET', 'POST'], 'get-variant-stock-history', [\App\Http\Controllers\VariableProductController::class, 'getVariantStockHistory'])->name('products.get-variant-stock-history');
     Route::match(['GET', 'POST'], 'adjust-stock', [\App\Http\Controllers\VariableProductController::class, 'adjustStock'])->name('products.adjust-stock');
+    
+    // Bundle product management (Step 2/3 dynamic UI)
+    Route::get('bundle-products/search', [\App\Http\Controllers\BundledProductController::class, 'searchProducts'])->name('bundle-products.search');
+    Route::get('bundle-products/{product}/variants', [\App\Http\Controllers\BundledProductController::class, 'variants'])->name('bundle-products.variants');
+    Route::get('bundle-products/{product}/units', [\App\Http\Controllers\BundledProductController::class, 'units'])->name('bundle-products.units');
+    Route::post('bundle-products/item-price', [\App\Http\Controllers\BundledProductController::class, 'itemPrice'])->name('bundle-products.item-price');
 
     Route::post('brand-list', [\App\Helpers\Helper::class, 'getBrands'])->name('brand-list');
     Route::post('product-image-delete', [\App\Http\Controllers\ProductController::class, 'deleteImage'])->name('product-image-delete');

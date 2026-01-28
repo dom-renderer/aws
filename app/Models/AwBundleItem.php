@@ -13,16 +13,16 @@ class AwBundleItem extends Model
 
     public function bundle()
     {
-        return $this->belongsTo(AwBundle::class);
+        return $this->belongsTo(AwBundle::class, 'bundle_id');
     }
 
     public function product()
     {
-        return $this->belongsTo(AwProduct::class);
+        return $this->belongsTo(AwProduct::class, 'product_id');
     }
 
     public function variant()
     {
-        return $this->belongsTo(AwProductVariant::class);
+        return $this->belongsTo(AwProductVariant::class, 'variant_id');
     }
 }

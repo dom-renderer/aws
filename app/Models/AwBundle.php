@@ -14,11 +14,11 @@ class AwBundle extends Model
 
     public function product()
     {
-        return $this->belongsTo(AwProduct::class);
+        return $this->belongsTo(AwProduct::class, 'product_id');
     }
 
     public function items()
     {
-        return $this->hasMany(AwBundleItem::class);
+        return $this->hasMany(AwBundleItem::class, 'bundle_id');
     }
 }

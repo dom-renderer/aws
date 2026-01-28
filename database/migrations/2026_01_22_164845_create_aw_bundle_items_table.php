@@ -16,9 +16,8 @@ return new class extends Migration
             $table->unsignedBigInteger('bundle_id')->nullable();
             $table->unsignedBigInteger('product_id')->nullable();
             $table->unsignedBigInteger('variant_id')->nullable();
+            $table->unsignedBigInteger('unit_id')->nullable();
             $table->integer('quantity');
-            $table->boolean('is_required')->default(true);
-            $table->boolean('allow_quantity_override')->default(false);
             $table->softDeletes();
             $table->timestamps();
         });
