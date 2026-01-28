@@ -71,30 +71,41 @@ header {
 	position: relative;
 }
 
-.menu-account.active {
-  display: block;
-  opacity: 1;
-  transform: translateY(0);
-  z-index: 99999!important;
-}
 .menu-account {
-	position: absolute;
-	/* top: 80px; */
+  	position: absolute;
 	right: 6%;
-	/* width: 320px; */
-	/* max-height: 80vh; */
 	background: #203A72;
 	border-radius: 12px;
 	box-shadow: 0 4px 20px rgba(0,0,0,0.15);
 	overflow-y: auto;
 	transform: translateY(-20px);
 	opacity: 0;
-	/* pointer-events: none; */
 	transition: all 0.4s ease;
 	z-index: 999;
 	padding: 15px;
 	color: #fff;
+  	display: none;
 }
+
+.menu-account.show {
+  display: block;
+}
+
+
+.menu-account {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.2s ease;
+  pointer-events: none;
+}
+
+.menu-account.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+
 .act-switch {
 	border-bottom: 1px solid;
 	padding-bottom: 10px;
@@ -2091,13 +2102,11 @@ footer {
 }
 
 
-
-
 .notification {
   position: absolute;
- 
+
   right: 6%;
-  
+  display: none;
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.15);
@@ -2109,12 +2118,12 @@ footer {
   z-index: 999;
 }
 
-/* When active — show smoothly */
-.notification.active {
+.notification.show {
+	display: block;
   transform: translateY(0);
   opacity: 1;
-  /* pointer-events: auto; */
 }
+
 .notification-block {
 	width: 380px;
 	background: #fff;

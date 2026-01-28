@@ -29,7 +29,6 @@
                                 @endforeach
                             </div>
 
-                            
                             <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleControls"
                                 data-bs-slide="prev">
                                 <span class="arrow-bg">
@@ -63,7 +62,7 @@
             </section>
         @endif
 
-        <section class="food">
+        {{-- <section class="food">
             <div class="food-block">
                 <div class="food-bevrage">
                     <div class="container">
@@ -328,7 +327,7 @@
                     </div>
                 </div>
             </div>
-        </section>
+        </section> --}}
     @empty
     @endforelse
 @endsection
