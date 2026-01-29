@@ -25,4 +25,9 @@ class AwBundleItem extends Model
     {
         return $this->belongsTo(AwProductVariant::class, 'variant_id');
     }
+
+    public function unit()
+    {
+        return $this->belongsTo(AwProductUnit::class, 'unit_id');
+    }
 }

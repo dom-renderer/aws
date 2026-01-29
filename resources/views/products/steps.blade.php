@@ -5,7 +5,7 @@
     } else if ($type == 'variable') {
         $steps = ['Basics', 'Variants', 'Pack Sizes', 'Pricing', 'Inventory', 'Category', 'Substitutes', 'Review'];
     } else {
-        $steps = ['Basics', 'Bundle Items', 'Pricing', 'Review'];
+        $steps = ['Basics', 'Bundle Items', 'Review'];
     }
 
 @endphp
