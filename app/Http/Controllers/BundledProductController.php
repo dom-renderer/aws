@@ -45,7 +45,7 @@ class BundledProductController extends Controller
 
         $bundle = $product->bundle()->with([
             'items' => function ($q) {
-                $q->with(['product', 'variant', 'unit']);
+                $q->with(['product', 'variant.attributes', 'unit.unit']);
             }
         ])->first();
 
@@ -246,7 +246,17 @@ class BundledProductController extends Controller
 
     protected static function review(Request $request, $step, $id, $product, $type)
     {
+        try {
+            $product = AwProduct::findOrFail($id);
 
+            $product->update([
+                'status' => $request->has('status') && $request->status ? 'active' : 'inactive'
+            ]);
+
+            return redirect()->route('products.index')->with('success', 'Product "' . $product->name . '" has been published successfully!');
+        } catch (\Exception $e) {
+            return back()->withErrors('Publishing failed: ' . $e->getMessage());
+        }
     }
     public function searchProducts(Request $request)
     {
