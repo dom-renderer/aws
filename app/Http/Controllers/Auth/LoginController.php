@@ -42,7 +42,7 @@ class LoginController extends Controller
     public function login(Request $request)
     {
         if ($request->method() == "GET") {
-            if (auth()?->guard('web')?->user()->id) {
+            if (auth()?->guard('web')?->user()?->id) {
                 return redirect()->to('admin/dashboard');    
             }
 

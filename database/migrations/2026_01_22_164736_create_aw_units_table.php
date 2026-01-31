@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name', 50);
             $table->string('symbol', 20)->nullable();
+            $table->text('text')->nullable();
             $table->softDeletes();
             $table->timestamps();
         });

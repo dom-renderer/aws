@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('aw_bundles', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('product_id')->constrained()->cascadeOnDelete();
+            $table->unsignedBigInteger('product_id')->nullable();
             $table->enum('pricing_mode', ['fixed', 'sum_discount']);
             $table->enum('discount_type', ['percentage', 'fixed'])->nullable();
             $table->decimal('discount_value', 12, 2)->nullable();
