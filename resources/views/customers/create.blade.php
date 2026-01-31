@@ -252,6 +252,25 @@ let marker;
 let geocoder;
 let locations = [];
 
+const carribianCountries = @json(\App\Helpers\Helper::$carribianCountries);
+
+function toggleCarribianLogic(countryId, isModal = false) {
+    const isCarribian = carribianCountries.includes(parseInt(countryId));
+    const label = isModal ? $('label[for="loc_state_id"]') : $('label[for="state_id"]');
+    const cityDiv = isModal ? $('#loc_city_id').parent().parent() : $('#city_id').parent();
+    const cityInput = isModal ? $('#loc_city_id') : $('#city_id');
+
+    if (isCarribian) {
+        label.html('Parish <span class="text-danger">*</span>');
+        cityDiv.hide();
+        cityInput.prop('required', false);
+    } else {
+        label.html('State <span class="text-danger">*</span>');
+        cityDiv.show();
+        cityInput.prop('required', true);
+    }
+}
+
 function initMap() {
     map = new google.maps.Map(document.getElementById("map"), {
         center: { lat: 40.7128, lng: -74.0060 },
@@ -315,7 +334,13 @@ function openLocationModal(index = null) {
         }
     }
     
+
+    function openLocationModal(index = null) {
+        toggleCarribianLogic($('#loc_country_id').val(), true);
+    }
+    
     $('#locationModal').modal('show');
+
     setTimeout(() => {
         google.maps.event.trigger(map, "resize");
         if (index === null) {
@@ -382,7 +407,6 @@ function saveLocation() {
         fax: $('#loc_fax').val(),
         latitude: $('#latitude').val(),
         longitude: $('#longitude').val(),
-        // Store names for display
         country_name: $('#loc_country_id option:selected').text(),
         state_name: $('#loc_state_id option:selected').text(),
         city_name: $('#loc_city_id option:selected').text(),
@@ -427,7 +451,6 @@ function renderLocationsTable() {
 
 $(document).ready(function() {
 
-    // Main Customer Form Logic
     $('#country_id').select2({
         allowClear: true,
         placeholder: 'Select country',
@@ -462,6 +485,7 @@ $(document).ready(function() {
             $('label[for="state_id"]').text('State');
             $('#city_id').parent().show();
         }
+        toggleCarribianLogic($(this).val(), false);
     });
 
     if ($('#country_id').val() == 20) {
@@ -548,7 +572,7 @@ $(document).ready(function() {
             state_id: { required: true },
             city_id: { 
                 required: function(element) {
-                    return $('#country_id').val() != 20;
+                    return !carribianCountries.includes(parseInt($('#country_id').val()));
                 }
             },
             status: { required: true },
@@ -567,7 +591,6 @@ $(document).ready(function() {
         }
     });
 
-    // Location Modal Logic
     $('#loc_country_id').select2({
         dropdownParent: $('#locationModal'),
         allowClear: true,
@@ -584,6 +607,7 @@ $(document).ready(function() {
             $('label[for="loc_state_id"]').text('State');
             $('#loc_city_id').parent().parent().show();
         }
+        toggleCarribianLogic($(this).val(), true);
     });
 
     $('#loc_state_id').select2({

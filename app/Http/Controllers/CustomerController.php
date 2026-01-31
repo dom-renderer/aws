@@ -109,10 +109,14 @@ class CustomerController extends Controller
 
         try {
             $data = $request->only(['name', 'email', 'dial_code', 'phone_number', 'country_id', 'state_id', 'city_id', 'status', 'password']);
-            if ($request->country_id == 20) {
+            if (in_array($request->country_id, \App\Helpers\Helper::$carribianCountries)) {
                 $data['city_id'] = null;
             }
             $data['added_by'] = auth()->guard('web')->user()->id;
+
+            if (in_array($request->country_id, \App\Helpers\Helper::$carribianCountries)) {
+                $data['city_id'] = null;
+            }
 
             $customer = User::create($data);
             
@@ -126,7 +130,7 @@ class CustomerController extends Controller
                 if (is_array($locations)) {
                     foreach ($locations as $locationData) {
                         $locationData['customer_id'] = $customer->id;
-                        if ($locationData['country_id'] == 20) {
+                        if (in_array($locationData['country_id'], \App\Helpers\Helper::$carribianCountries)) {
                             $locationData['city_id'] = null;
                         }
                         \App\Models\Location::create($locationData);
@@ -175,7 +179,7 @@ class CustomerController extends Controller
 
         try {
             $data = $request->only(['name', 'email', 'dial_code', 'phone_number', 'country_id', 'state_id', 'city_id', 'status']);
-            if ($request->country_id == 20) {
+            if (in_array($request->country_id, \App\Helpers\Helper::$carribianCountries)) {
                 $data['city_id'] = null;
             }
             
