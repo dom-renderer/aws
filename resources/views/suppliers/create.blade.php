@@ -105,6 +105,7 @@
 <script>
 $(document).ready(function() {
 
+    const carribianCountries = @json(\App\Helpers\Helper::$carribianCountries);
     const input = document.querySelector('#phone_number');
     const errorMap = ["Phone number is invalid.", "Invalid country code", "Too short", "Too long"];
     const iti = window.intlTelInput(input, {
@@ -130,6 +131,32 @@ $(document).ready(function() {
         placeholder: 'Select country',
         width: '100%'
     });
+
+    function handleCountryChange(countryId) {
+        const isCaribbean = carribianCountries.includes(parseInt(countryId));
+        const stateLabel = isCaribbean ? 'Parish' : 'State';
+        const cityContainer = $('#city_id').closest('.mb-3');
+        
+        $('label[for="state_id"]').html(`${stateLabel} <span class="text-danger">*</span>`);
+        
+        if (isCaribbean) {
+            cityContainer.hide();
+            $('#city_id').val('').trigger('change').prop('required', false);
+            $("#city_id").rules("remove", "required");
+        } else {
+            cityContainer.show();
+            $('#city_id').prop('required', true);
+            $("#city_id").rules("add", "required");
+        }
+    }
+
+    $('#country_id').on('change', function() {
+        handleCountryChange($(this).val());
+    });
+
+    if ($('#country_id').val()) {
+        handleCountryChange($('#country_id').val());
+    }
     
     $('#state_id').select2({
         allowClear: true,

@@ -58,16 +58,22 @@
                         </select>
                         @error('country_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
+
                     <div class="mb-3">
-                        <label for="state_id" class="form-label">State <span class="text-danger">*</span></label>
+                        <label for="state_id" class="form-label">
+                            {{ in_array($supplier->country_id, \App\Helpers\Helper::$carribianCountries) ? 'Parish' : 'State' }} 
+                            <span class="text-danger">*</span>
+                        </label>
                         <select class="form-select select2 @error('state_id') is-invalid @enderror" id="state_id" name="state_id" required>
-                            <option value="">Select State</option>
+                            <option value="">Select {{ in_array($supplier->country_id, \App\Helpers\Helper::$carribianCountries) ? 'Parish' : 'State' }}</option>
                         </select>
                         @error('state_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
-                    <div class="mb-3">
+
+                    <div class="mb-3" id="city_container" style="{{ in_array($supplier->country_id, \App\Helpers\Helper::$carribianCountries) ? 'display:none;' : '' }}">
                         <label for="city_id" class="form-label">City <span class="text-danger">*</span></label>
-                        <select class="form-select select2 @error('city_id') is-invalid @enderror" id="city_id" name="city_id" required>
+                        <select class="form-select select2 @error('city_id') is-invalid @enderror" id="city_id" name="city_id" 
+                            {{ in_array($supplier->country_id, \App\Helpers\Helper::$carribianCountries) ? '' : 'required' }}>
                             <option value="">Select City</option>
                         </select>
                         @error('city_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
@@ -132,6 +138,32 @@ $(document).ready(function() {
         placeholder: 'Select country',
         width: '100%'
     });
+
+    function handleCountryChange(countryId) {
+        const isCaribbean = carribianCountries.includes(parseInt(countryId));
+        const stateLabel = isCaribbean ? 'Parish' : 'State';
+        const cityContainer = $('#city_id').closest('.mb-3');
+        
+        $('label[for="state_id"]').html(`${stateLabel} <span class="text-danger">*</span>`);
+        
+        if (isCaribbean) {
+            cityContainer.hide();
+            $('#city_id').val('').trigger('change').prop('required', false);
+            $("#city_id").rules("remove", "required");
+        } else {
+            cityContainer.show();
+            $('#city_id').prop('required', true);
+            $("#city_id").rules("add", "required");
+        }
+    }
+
+    $('#country_id').on('change', function() {
+        handleCountryChange($(this).val());
+    });
+
+    if ($('#country_id').val()) {
+        handleCountryChange($('#country_id').val());
+    }    
     
     $('#state_id').select2({
         allowClear: true,

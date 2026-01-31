@@ -28,13 +28,15 @@
                                 <td>{{ $supplier->country ? $supplier->country->name : 'N/A' }}</td>
                             </tr>
                             <tr>
-                                <th>State:</th>
+                                <th id="state_label">{{ in_array($supplier->country_id, \App\Helpers\Helper::$carribianCountries) ? 'Parish' : 'State' }}:</th>
                                 <td>{{ $supplier->state ? $supplier->state->name : 'N/A' }}</td>
                             </tr>
+                            @if(!in_array($supplier->country_id, \App\Helpers\Helper::$carribianCountries))
                             <tr>
                                 <th>City:</th>
                                 <td>{{ $supplier->city ? $supplier->city->name : 'N/A' }}</td>
                             </tr>
+                            @endif
                             <tr>
                                 <th>Status:</th>
                                 <td>

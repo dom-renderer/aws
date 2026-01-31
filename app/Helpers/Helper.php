@@ -11,7 +11,9 @@ use App\Models\City;
 use App\Models\Brand;
 
 class Helper {
-    
+
+    public static $carribianCountries = [8,10,13,17,20,41,56,61,62,87,88,95,108,138,148,155,178,185,186,188,189,190,223,227,241,242,249,250];
+
     public static function title ($title = '') {
         if (!empty($title)) {
             return $title;

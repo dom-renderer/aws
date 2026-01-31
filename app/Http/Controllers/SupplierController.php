@@ -96,6 +96,8 @@ class SupplierController extends Controller
 
     public function store(Request $request)
     {
+        $isCaribbean = in_array($request->country_id, \App\Helpers\Helper::$carribianCountries);
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email',
@@ -103,7 +105,7 @@ class SupplierController extends Controller
             'phone_number' => 'required|string|max:20|unique:users,phone_number',
             'country_id' => 'required|exists:countries,id',
             'state_id' => 'required|exists:states,id',
-            'city_id' => 'required|exists:cities,id',
+            'city_id' => $isCaribbean ? 'nullable' : 'required|exists:cities,id',
             'status' => 'required|boolean',
             'password' => 'required|string|min:6',
         ]);
@@ -149,6 +151,8 @@ class SupplierController extends Controller
     public function update(Request $request, string $id)
     {
         $supplier = User::findOrFail(decrypt($id));
+        $isCaribbean = in_array($request->country_id, \App\Helpers\Helper::$carribianCountries);
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . $supplier->id,
@@ -156,7 +160,7 @@ class SupplierController extends Controller
             'phone_number' => 'required|string|max:20|unique:users,phone_number,' . $supplier->id,
             'country_id' => 'required|exists:countries,id',
             'state_id' => 'required|exists:states,id',
-            'city_id' => 'required|exists:cities,id',
+            'city_id' => $isCaribbean ? 'nullable' : 'required|exists:cities,id',
             'status' => 'required|boolean',
             'password' => 'nullable|string|min:6',
         ]);
